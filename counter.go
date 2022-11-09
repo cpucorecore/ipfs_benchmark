@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"sort"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -51,8 +52,8 @@ func analyseLatencies(values []float64) (min float64, max float64, mean float64)
 	return
 }
 
-func resultsAnalyser() {
-	defer resultsAnalyserWg.Done()
+func processResults(wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	ls, rs := analyseResults(chResults, input.Goroutines, params.Window)
 	outputLatenciesSummary(ls)
@@ -178,7 +179,7 @@ func outputResultsSummary(rs ResultsSummary) {
 	)
 
 	title := input.info(params.Timestamp)
-	e = saveTest(Test{Input: input, Results: rs.Results}, params.Timestamp)
+	e = saveTest(Test{Params: params, Input: input, Results: rs.Results}, params.Timestamp)
 	if e != nil {
 		logger.Error("saveTest err", zap.String("err", e.Error()))
 	}

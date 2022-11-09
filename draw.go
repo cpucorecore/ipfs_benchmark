@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"image/color"
 	"path/filepath"
 
+	"go.uber.org/zap"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/plotutil"
@@ -46,7 +46,7 @@ func DrawXYs(title, xLabel, yLabel string, xys plotter.XYs) error {
 		return e
 	}
 
-	return p.Save(30*vg.Inch, 10*vg.Inch, filepath.Join(ReportsDir, title+".png"))
+	return p.Save(30*vg.Inch, 10*vg.Inch, filepath.Join(ImagesDir, title+".png"))
 }
 
 var colors = []color.RGBA{
@@ -112,12 +112,12 @@ func Compare(tag string, sortLatency bool, window int, files ...string) error {
 		latencyPlot.Legend.Add(file, latencyLine, latencyScatter)
 	}
 
-	if e := tpsPlot.Save(30*vg.Inch, 10*vg.Inch, title+".tps.png"); e != nil {
+	if e := tpsPlot.Save(30*vg.Inch, 10*vg.Inch, filepath.Join(CompareImagesDir, title+".tps.png")); e != nil {
 		logger.Error("plotter save err", zap.String("err", e.Error()))
 		return e
 	}
 
-	if e := latencyPlot.Save(30*vg.Inch, 10*vg.Inch, title+".latency.png"); e != nil {
+	if e := latencyPlot.Save(30*vg.Inch, 10*vg.Inch, filepath.Join(CompareImagesDir, title+".latency.png")); e != nil {
 		logger.Error("plotter save err", zap.String("err", e.Error()))
 		return e
 	}

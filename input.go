@@ -50,5 +50,9 @@ func (o *Input) check() error {
 		return errors.New(fmt.Sprintf("goroutines must <= (to-from), check the parameters"))
 	}
 
+	if o.BlockSize > 1024*1024 {
+		return errors.New("BlockSize can not > 1MB")
+	}
+
 	return nil
 }

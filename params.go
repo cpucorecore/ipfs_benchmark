@@ -6,4 +6,5 @@ type Params struct {
 	Window         int
 	TestResultFile string
 	FilesDir       string
+	FileSize       int
 }

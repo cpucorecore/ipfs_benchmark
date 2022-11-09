@@ -3,25 +3,29 @@ package main
 import (
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
+type Fid2Cid struct {
+	Fid int
+	Cid string
+}
+
 const (
-	ReportsDir = "reports"
-	ImagesDir  = "images"
+	TestResultDir    = "test_result"
+	ImagesDir        = "images"
+	CompareImagesDir = "compare_images"
+	URandom          = "/dev/urandom"
 )
 
 var (
 	params Params
 	input  Input
 
-	resultsAnalyserWg sync.WaitGroup
-
-	chCids    = make(chan string, 100000)
-	chResults = make(chan Result, 20000)
+	chFid2Cids = make(chan Fid2Cid, 10000)
+	chResults  = make(chan Result, 20000)
 
 	logger *zap.Logger
 )
@@ -48,7 +52,7 @@ func main() {
 			&cli.IntFlag{
 				Name:        "to",
 				Usage:       "[from, to)",
-				Value:       10,
+				Value:       100,
 				Destination: &input.To,
 			},
 			&cli.IntFlag{
@@ -57,6 +61,12 @@ func main() {
 				Value:       100,
 				Destination: &params.Window,
 				Aliases:     []string{"w"},
+			},
+			&cli.StringFlag{
+				Name:        "test_result_file",
+				Usage:       "the file To save test result",
+				Destination: &params.TestResultFile,
+				Aliases:     []string{"trf"},
 			},
 			&cli.BoolFlag{
 				Name:        "verbose",
@@ -93,13 +103,19 @@ func main() {
 				return e
 			}
 
-			e = os.MkdirAll(ReportsDir, os.ModePerm)
+			e = os.MkdirAll(TestResultDir, os.ModePerm)
 			if e != nil {
 				logger.Error("create Dir err", zap.String("err", e.Error()))
 				return e
 			}
 
 			e = os.MkdirAll(ImagesDir, os.ModePerm)
+			if e != nil {
+				logger.Error("create Dir err", zap.String("err", e.Error()))
+				return e
+			}
+
+			e = os.MkdirAll(CompareImagesDir, os.ModePerm)
 			if e != nil {
 				logger.Error("create Dir err", zap.String("err", e.Error()))
 				return e
@@ -136,47 +152,10 @@ func main() {
 			},
 			{
 				Name: "cluster",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:        "test_result_file",
-						Usage:       "the file To save test results",
-						Destination: &params.TestResultFile,
-						Aliases:     []string{"trf"},
-					},
-				},
-				Before: func(context *cli.Context) error {
-					resultsAnalyserWg.Add(1)
-					go resultsAnalyser()
-					return nil
-				},
-				After: func(context *cli.Context) error {
-					resultsAnalyserWg.Wait()
-					return nil
-				},
 				Subcommands: []*cli.Command{
 					{
-						Name: "pin",
-						Before: func(context *cli.Context) error {
-							defer close(chCids)
-
-							t, e := loadTest(params.TestResultFile)
-							if e != nil {
-								logger.Error("loadTestResult err", zap.String("err", e.Error()))
-								return e
-							}
-
-							if input.To > len(t.Results) {
-								input.To = len(t.Results)
-							}
-
-							for _, r := range t.Results[input.From:input.To] {
-								if r.Cid != "" {
-									chCids <- r.Cid
-								}
-							}
-
-							return nil
-						},
+						Name:   "pin",
+						Before: loadTestCids,
 						Subcommands: []*cli.Command{
 							{
 								Name: "get",
@@ -188,14 +167,14 @@ func main() {
 							{
 								Name: "add",
 								Action: func(context *cli.Context) error {
-									input.TestCase = "ClusterPin"
+									input.TestCase = "ClusterPinAdd"
 									return doRequests(http.MethodPost, "/pins/ipfs/")
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									input.TestCase = "ClusterUnpin"
+									input.TestCase = "ClusterPinRm"
 									return doRequests(http.MethodDelete, "/pins/ipfs/")
 								},
 							},
@@ -245,21 +224,13 @@ func main() {
 			},
 			{
 				Name: "ipfs",
-				Before: func(context *cli.Context) error {
-					resultsAnalyserWg.Add(1)
-					go resultsAnalyser()
-					return nil
-				},
-				After: func(context *cli.Context) error {
-					resultsAnalyserWg.Wait()
-					return nil
-				},
 				Subcommands: []*cli.Command{
 					{
-						Name: "stat",
+						Name:   "stat",
+						Before: loadTestCids,
 						Action: func(context *cli.Context) error {
 							input.TestCase = "IpfsStat"
-							return doRequests(http.MethodPost, "/api/v0/repo/stat")
+							return doRequests(http.MethodPost, "/api/v0/repo/stat/")
 						},
 					},
 				},
@@ -274,24 +245,16 @@ func main() {
 						Aliases:     []string{"d"},
 					},
 					&cli.IntFlag{
-						Name:    "size",
-						Usage:   "file size",
-						Value:   1024 * 1024,
-						Aliases: []string{"s"},
+						Name:        "size",
+						Usage:       "file size",
+						Value:       1024 * 1024,
+						Destination: &params.FileSize,
+						Aliases:     []string{"s"},
 					},
-				},
-				Before: func(context *cli.Context) error {
-					resultsAnalyserWg.Add(1)
-					go resultsAnalyser()
-					return nil
-				},
-				After: func(context *cli.Context) error {
-					resultsAnalyserWg.Wait()
-					return nil
 				},
 				Action: func(context *cli.Context) error {
 					input.TestCase = "GenFile"
-					return genFiles(context.Int("size"))
+					return genFiles()
 				},
 			},
 		},

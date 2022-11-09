@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,14 +31,15 @@ var transport = &http.Transport{
 
 var httpClient = &http.Client{Transport: transport}
 
-func doRequest(gid int, method, url, cid string) {
+func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 	r := Result{
 		Gid: gid,
-		Cid: cid,
+		Fid: fid2cid.Fid,
+		Cid: fid2cid.Cid,
 	}
 
 	var req *http.Request
-	req, _ = http.NewRequest(method, url+cid, nil)
+	req, _ = http.NewRequest(method, url+fid2cid.Cid, nil)
 	r.S = time.Now()
 	resp, e := httpClient.Do(req)
 	r.E = time.Now()
@@ -66,7 +66,8 @@ func doRequest(gid int, method, url, cid string) {
 
 	if resp.StatusCode != 200 && resp.StatusCode != 404 { // TODO retry
 		logger.Error("do http request failed",
-			zap.String("cid", cid),
+			zap.Int("fid", fid2cid.Fid),
+			zap.String("cid", fid2cid.Cid),
 			zap.Int("status", resp.StatusCode),
 			zap.String("resp", string(body)))
 
@@ -79,9 +80,11 @@ func doRequest(gid int, method, url, cid string) {
 }
 
 func doRequests(method, path string) error {
-	defer close(chResults)
-
 	url := "http://" + input.HostPort + path
+
+	var prsWg sync.WaitGroup
+	prsWg.Add(1)
+	go processResults(&prsWg)
 
 	var wg sync.WaitGroup
 	for i := 0; i < input.Goroutines; i++ {
@@ -91,7 +94,7 @@ func doRequests(method, path string) error {
 			defer wg.Done()
 
 			for {
-				cid, ok := <-chCids
+				cid, ok := <-chFid2Cids
 				if !ok {
 					return
 				}
@@ -102,6 +105,9 @@ func doRequests(method, path string) error {
 	}
 
 	wg.Wait()
+	close(chResults)
+
+	prsWg.Wait()
 	return nil
 }
 
@@ -198,8 +204,6 @@ func postFile(tid int, fid int) {
 }
 
 func sendFiles() error {
-	defer close(chResults)
-
 	logger.Info("sendFiles",
 		zap.String("FilesDir", params.FilesDir),
 		zap.Int("From", input.From),
@@ -210,9 +214,9 @@ func sendFiles() error {
 		zap.Int("ReplicationMax", input.ReplicationMax),
 	)
 
-	if input.BlockSize > 1024*1024 {
-		return errors.New("BlockSize can not > 1MB")
-	}
+	var prsWg sync.WaitGroup
+	prsWg.Add(1)
+	go processResults(&prsWg)
 
 	chunker := fmt.Sprintf("size-%d", input.BlockSize)
 	noPin := fmt.Sprintf("%t", !input.Pin)
@@ -259,8 +263,10 @@ func sendFiles() error {
 			}
 		}(i)
 	}
-
 	wg.Wait()
-	close(chCids)
+
+	close(chResults)
+
+	prsWg.Wait()
 	return nil
 }

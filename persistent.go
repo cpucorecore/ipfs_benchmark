@@ -3,6 +3,10 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
+
+	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 )
 
 func File2bytes(name string) ([]byte, error) {
@@ -27,17 +31,18 @@ func File2bytes(name string) ([]byte, error) {
 }
 
 type Test struct {
+	Params  Params
 	Input   Input
 	Results []Result
 }
 
 func saveTest(t Test, ts bool) error {
-	b, e := json.Marshal(t)
+	b, e := json.MarshalIndent(t, "", "  ")
 	if e != nil {
 		return e
 	}
 
-	fp, e := os.Create(t.Input.info(ts) + ".json")
+	fp, e := os.Create(filepath.Join(TestResultDir, t.Input.info(ts)+".json"))
 	if e != nil {
 		return e
 	}
@@ -65,4 +70,26 @@ func loadTest(name string) (Test, error) {
 	}
 
 	return t, nil
+}
+
+func loadTestCids(_ *cli.Context) error {
+	defer close(chFid2Cids)
+
+	t, e := loadTest(params.TestResultFile)
+	if e != nil {
+		logger.Error("loadTest err", zap.String("err", e.Error()))
+		return e
+	}
+
+	if input.To > len(t.Results) {
+		input.To = len(t.Results)
+	}
+
+	for _, r := range t.Results[input.From:input.To] {
+		if r.Cid != "" {
+			chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
+		}
+	}
+
+	return nil
 }

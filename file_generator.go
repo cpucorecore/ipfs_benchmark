@@ -10,14 +10,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func genFiles(size int) error {
-	defer close(chResults)
-
+func genFiles() error {
 	logger.Info("genFiles",
 		zap.String("FilesDir", params.FilesDir),
 		zap.Int("From", input.From),
 		zap.Int("To", input.To),
-		zap.Int("Size", size),
+		zap.Int("FileSize", params.FileSize),
 	)
 
 	e := os.MkdirAll(params.FilesDir, os.ModePerm)
@@ -34,7 +32,9 @@ func genFiles(size int) error {
 		close(chFids)
 	}()
 
-	const fileDataSource = "/dev/urandom"
+	var prsWg sync.WaitGroup
+	prsWg.Add(1)
+	go processResults(&prsWg)
 
 	var wg sync.WaitGroup
 	for i := 0; i < input.Goroutines; i++ {
@@ -43,9 +43,9 @@ func genFiles(size int) error {
 		go func(gid int) {
 			defer wg.Done()
 
-			rf, e := os.Open(fileDataSource)
+			rf, e := os.Open(URandom)
 			if e != nil {
-				logger.Error("open file err", zap.String("file", fileDataSource), zap.String("err", e.Error()))
+				logger.Error("open file err", zap.String("file", URandom), zap.String("err", e.Error()))
 				return
 			}
 			defer rf.Close()
@@ -76,7 +76,7 @@ func genFiles(size int) error {
 
 				var currentSize, rn, wn int
 				r.S = time.Now()
-				for currentSize < size {
+				for currentSize < params.FileSize {
 					rn, e = rf.Read(buffer[:])
 					if e != nil {
 						logger.Error("read file err", zap.String("err", e.Error()))
@@ -111,7 +111,10 @@ func genFiles(size int) error {
 			}
 		}(i)
 	}
-
 	wg.Wait()
+
+	close(chResults)
+
+	prsWg.Wait()
 	return nil
 }
