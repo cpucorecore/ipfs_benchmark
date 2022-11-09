@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
@@ -18,6 +19,7 @@ const (
 	ImagesDir        = "images"
 	CompareImagesDir = "compare_images"
 	URandom          = "/dev/urandom"
+	FakeFid          = -1
 )
 
 var (
@@ -218,6 +220,37 @@ func main() {
 						Action: func(context *cli.Context) error {
 							input.TestCase = "ClusterAdd"
 							return sendFiles()
+						},
+					},
+					{
+						Name:  "unpin_by_cids",
+						Usage: "unpin by cids list file",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:        "cids_file",
+								Value:       "cids list file",
+								Destination: &params.FilesDir,
+								Aliases:     []string{"c"},
+							},
+						},
+						Action: func(context *cli.Context) error {
+							input.TestCase = "ClusterUnpin"
+							bs, e := File2bytes(context.String("cids_file"))
+							if e != nil {
+								return e
+							}
+
+							cids := strings.Split(strings.TrimSpace(string(bs)), "\n")
+							go func() {
+								for _, cid := range cids {
+									if len(cid) > 10 {
+										chFid2Cids <- Fid2Cid{Fid: FakeFid, Cid: cid}
+									}
+								}
+								close(chFid2Cids)
+							}()
+
+							return doRequests(http.MethodDelete, "/pins/ipfs/")
 						},
 					},
 				},
