@@ -126,7 +126,7 @@ func postFile(tid int, fid int) {
 		return
 	}
 
-	fp := filepath.Join(params.Dir, fidStr)
+	fp := filepath.Join(params.FilesDir, fidStr)
 	f, e := os.Open(fp)
 	if e != nil {
 		r.Ret = -2
@@ -197,15 +197,15 @@ func postFile(tid int, fid int) {
 	chResults <- r
 }
 
-func sendFiles(pin bool) error {
+func sendFiles() error {
 	defer close(chResults)
 
 	logger.Info("sendFiles",
-		zap.String("Dir", params.Dir),
+		zap.String("FilesDir", params.FilesDir),
 		zap.Int("From", input.From),
 		zap.Int("To", input.To),
 		zap.Int("BlockSize", input.BlockSize),
-		zap.Bool("pin", pin),
+		zap.Bool("Pin", input.Pin),
 		zap.Int("ReplicationMin", input.ReplicationMin),
 		zap.Int("ReplicationMax", input.ReplicationMax),
 	)
@@ -215,7 +215,7 @@ func sendFiles(pin bool) error {
 	}
 
 	chunker := fmt.Sprintf("size-%d", input.BlockSize)
-	noPin := fmt.Sprintf("%t", !pin)
+	noPin := fmt.Sprintf("%t", !input.Pin)
 	replicationMin := fmt.Sprintf("%d", input.ReplicationMin)
 	replicationMax := fmt.Sprintf("%d", input.ReplicationMax)
 	httpParams := url.Values{

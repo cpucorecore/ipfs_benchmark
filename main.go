@@ -9,36 +9,33 @@ import (
 	"go.uber.org/zap"
 )
 
-const ReportsDir = "reports"
+const (
+	ReportsDir = "reports"
+	ImagesDir  = "images"
+)
 
-var input Input
-var params Params
+var (
+	params Params
+	input  Input
 
-var resultsAnalyserWg sync.WaitGroup
+	resultsAnalyserWg sync.WaitGroup
 
-var chCids = make(chan string, 100000)
-var chResults = make(chan Result, 20000)
+	chCids    = make(chan string, 100000)
+	chResults = make(chan Result, 20000)
 
-var testCase string
-var logger *zap.Logger
+	logger *zap.Logger
+)
 
 func main() {
 	logger, _ = zap.NewDevelopment()
 
 	app := &cli.App{
-		Name: "ipfs_api_benchmark",
+		Name: "ipfs_benchmark",
 		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        "timestamp",
-				Usage:       "goroutine number",
-				Value:       false,
-				Destination: &params.Timestamp,
-				Aliases:     []string{"t"},
-			},
 			&cli.IntFlag{
 				Name:        "goroutines",
 				Usage:       "goroutine number",
-				Value:       4,
+				Value:       1,
 				Destination: &input.Goroutines,
 				Aliases:     []string{"g"},
 			},
@@ -54,6 +51,13 @@ func main() {
 				Value:       10,
 				Destination: &input.To,
 			},
+			&cli.IntFlag{
+				Name:        "window",
+				Usage:       "analyseResults Window",
+				Value:       100,
+				Destination: &params.Window,
+				Aliases:     []string{"w"},
+			},
 			&cli.BoolFlag{
 				Name:        "verbose",
 				Usage:       "Verbose log",
@@ -62,17 +66,25 @@ func main() {
 				Aliases:     []string{"v"},
 			},
 			&cli.StringFlag{
-				Name:        "hostPort",
+				Name:        "host_port",
 				Usage:       "api host and port",
 				Value:       "192.168.0.85:9094",
 				Destination: &input.HostPort,
+				Aliases:     []string{"hp"},
 			},
-			&cli.IntFlag{
-				Name:        "window",
-				Usage:       "analyseResults Window",
-				Value:       100,
-				Destination: &params.Window,
-				Aliases:     []string{"w"},
+			&cli.StringFlag{
+				Name:        "tag",
+				Usage:       "add tag for test case, eg crdt, raft",
+				Value:       "",
+				Destination: &input.Tag,
+				Aliases:     []string{"t"},
+			},
+			&cli.BoolFlag{
+				Name:        "timestamp", // TODO remove and save timestamp to test result file
+				Usage:       "add timestamp to test result file",
+				Value:       true,
+				Destination: &params.Timestamp,
+				Aliases:     []string{"ts"},
 			},
 		},
 		Before: func(context *cli.Context) error {
@@ -86,35 +98,38 @@ func main() {
 				logger.Error("create Dir err", zap.String("err", e.Error()))
 				return e
 			}
+
+			e = os.MkdirAll(ImagesDir, os.ModePerm)
+			if e != nil {
+				logger.Error("create Dir err", zap.String("err", e.Error()))
+				return e
+			}
+
 			return nil
 		},
 		Commands: []*cli.Command{
 			{
-				Name: "compare",
+				Name:  "compare",
+				Usage: "compare test result",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:  "sort",
-						Usage: "sort the values",
-						Value: false,
-					},
-					&cli.StringFlag{
-						Name:    "tag",
-						Usage:   "tag for file name, final name is compare_${tag}_smooth${smooth}.png",
-						Value:   "tag",
-						Aliases: []string{"t"},
+						Name:    "sort_latency",
+						Usage:   "sort the latencies",
+						Value:   true,
+						Aliases: []string{"sl"},
 					},
 				},
 				Action: func(context *cli.Context) error {
 					return Compare(
 						context.String("tag"),
-						context.Int("smooth"),
-						context.Bool("sort"),
+						context.Bool("sort_latency"),
 						context.Int("window"),
 						context.Args().Slice()...)
 				},
 			},
 			{
-				Name: "gc",
+				Name:  "gc",
+				Usage: "cluster gc",
 				Action: func(context *cli.Context) error {
 					return gc()
 				},
@@ -123,10 +138,10 @@ func main() {
 				Name: "cluster",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "Results",
-						Usage:       "the file To save Results",
-						Value:       "./Results.json",
-						Destination: &params.ResultsFile,
+						Name:        "test_result_file",
+						Usage:       "the file To save test results",
+						Destination: &params.TestResultFile,
+						Aliases:     []string{"trf"},
 					},
 				},
 				Before: func(context *cli.Context) error {
@@ -144,7 +159,7 @@ func main() {
 						Before: func(context *cli.Context) error {
 							defer close(chCids)
 
-							t, e := loadTest(params.ResultsFile)
+							t, e := loadTest(params.TestResultFile)
 							if e != nil {
 								logger.Error("loadTestResult err", zap.String("err", e.Error()))
 								return e
@@ -166,21 +181,21 @@ func main() {
 							{
 								Name: "get",
 								Action: func(context *cli.Context) error {
-									testCase = "ClusterPinGet"
+									input.TestCase = "ClusterPinGet"
 									return doRequests(http.MethodGet, "/pins/")
 								},
 							},
 							{
 								Name: "add",
 								Action: func(context *cli.Context) error {
-									testCase = "ClusterPin"
+									input.TestCase = "ClusterPin"
 									return doRequests(http.MethodPost, "/pins/ipfs/")
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									testCase = "ClusterUnpin"
+									input.TestCase = "ClusterUnpin"
 									return doRequests(http.MethodDelete, "/pins/ipfs/")
 								},
 							},
@@ -190,37 +205,40 @@ func main() {
 						Name: "add",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:        "dir",
-								Usage:       "dir for file To creat at",
-								Value:       "./files",
-								Destination: &params.Dir,
+								Name:        "files_dir",
+								Value:       "files",
+								Destination: &params.FilesDir,
 								Aliases:     []string{"d"},
 							},
 							&cli.IntFlag{
-								Name:        "blockSize",
+								Name:        "block_size",
 								Usage:       "block size, max value 1048576(1MB), default 262144(256KB)",
 								Destination: &input.BlockSize,
 								Value:       1024 * 256,
+								Aliases:     []string{"bs"},
 							},
 							&cli.BoolFlag{
-								Name:    "pin",
-								Value:   true,
-								Aliases: []string{"p"},
+								Name:        "pin",
+								Value:       true,
+								Destination: &input.Pin,
+								Aliases:     []string{"p"},
 							},
 							&cli.IntFlag{
-								Name:        "replicationMin",
+								Name:        "replication_min",
 								Value:       2,
 								Destination: &input.ReplicationMin,
+								Aliases:     []string{"rmin"},
 							},
 							&cli.IntFlag{
-								Name:        "replicationMax",
+								Name:        "replication_max",
 								Value:       2,
 								Destination: &input.ReplicationMax,
+								Aliases:     []string{"rmax"},
 							},
 						},
 						Action: func(context *cli.Context) error {
-							testCase = "ClusterAdd"
-							return sendFiles(context.Bool("pin"))
+							input.TestCase = "ClusterAdd"
+							return sendFiles()
 						},
 					},
 				},
@@ -240,25 +258,26 @@ func main() {
 					{
 						Name: "stat",
 						Action: func(context *cli.Context) error {
-							testCase = "IpfsStat"
+							input.TestCase = "IpfsStat"
 							return doRequests(http.MethodPost, "/api/v0/repo/stat")
 						},
 					},
 				},
 			},
 			{
-				Name: "genFile",
+				Name: "gen_files",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:    "Dir",
-						Usage:   "Dir for file To creat at",
-						Value:   "./files",
-						Aliases: []string{"d"},
+						Name:        "files_dir",
+						Value:       "files",
+						Destination: &params.FilesDir,
+						Aliases:     []string{"d"},
 					},
 					&cli.IntFlag{
-						Name:  "size",
-						Usage: "file size",
-						Value: 1024 * 1024,
+						Name:    "size",
+						Usage:   "file size",
+						Value:   1024 * 1024,
+						Aliases: []string{"s"},
 					},
 				},
 				Before: func(context *cli.Context) error {
@@ -271,8 +290,8 @@ func main() {
 					return nil
 				},
 				Action: func(context *cli.Context) error {
-					testCase = "GenFile"
-					return genFiles(context.String("Dir"), context.Int("size"))
+					input.TestCase = "GenFile"
+					return genFiles(context.Int("size"))
 				},
 			},
 		},

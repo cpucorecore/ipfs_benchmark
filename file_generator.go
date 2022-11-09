@@ -10,19 +10,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func genFiles(dir string, size int) error {
+func genFiles(size int) error {
 	defer close(chResults)
 
 	logger.Info("genFiles",
-		zap.String("Dir", dir),
+		zap.String("FilesDir", params.FilesDir),
 		zap.Int("From", input.From),
 		zap.Int("To", input.To),
-		zap.Int("size", size),
+		zap.Int("Size", size),
 	)
 
-	e := os.MkdirAll(dir, os.ModePerm)
+	e := os.MkdirAll(params.FilesDir, os.ModePerm)
 	if e != nil {
-		logger.Error("MkdirAll err", zap.String("Dir", dir), zap.String("err", e.Error()))
+		logger.Error("MkdirAll err", zap.String("dir", params.FilesDir), zap.String("err", e.Error()))
 		return e
 	}
 
@@ -62,7 +62,7 @@ func genFiles(dir string, size int) error {
 					Fid: fid,
 				}
 
-				fp := path.Join(dir, fmt.Sprintf("%d", fid))
+				fp := path.Join(params.FilesDir, fmt.Sprintf("%d", fid))
 				fd, e := os.Create(fp)
 				if e != nil {
 					logger.Error("create file err", zap.String("file", fp), zap.String("err", e.Error()))

@@ -29,7 +29,7 @@ func DrawValues(title, xLabel, yLabel string, values plotter.Values) error {
 
 	p.Add(bar)
 
-	return p.Save(30*vg.Inch, 10*vg.Inch, filepath.Join(ReportsDir, title+".png"))
+	return p.Save(30*vg.Inch, 10*vg.Inch, filepath.Join(ImagesDir, title+".png"))
 }
 
 func DrawXYs(title, xLabel, yLabel string, xys plotter.XYs) error {
@@ -62,8 +62,8 @@ var colors = []color.RGBA{
 	{R: 100, G: 128, B: 30, A: 255},
 }
 
-func Compare(tag string, smooth int, sortLatency bool, window int, files ...string) error {
-	title := fmt.Sprintf("compare_%s_smooth%d_sortLatency%v", tag, smooth, sortLatency)
+func Compare(tag string, sortLatency bool, window int, files ...string) error {
+	title := fmt.Sprintf("compare_%s_sortLatency%v", tag, sortLatency)
 
 	tpsPlot := plot.New()
 	tpsPlot.Title.Text = title + ".tps"

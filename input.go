@@ -8,9 +8,11 @@ import (
 
 type Input struct {
 	TestCase       string
+	Tag            string
 	Goroutines     int
 	From           int
 	To             int
+	Pin            bool
 	BlockSize      int
 	ReplicationMin int
 	ReplicationMax int
@@ -18,7 +20,7 @@ type Input struct {
 }
 
 func (o *Input) info(ts bool) string {
-	ti := fmt.Sprintf("%s%d-%d_g%d", o.TestCase, o.From, o.To, o.Goroutines)
+	ti := fmt.Sprintf("%s_%d-%d_g%d", o.TestCase, o.From, o.To, o.Goroutines)
 
 	if o.BlockSize > 0 {
 		ti += fmt.Sprintf("_bs%d", o.BlockSize)
@@ -26,6 +28,10 @@ func (o *Input) info(ts bool) string {
 
 	if o.ReplicationMin > 0 && o.ReplicationMax > 0 {
 		ti += fmt.Sprintf("_r%d-%d", o.ReplicationMin, o.ReplicationMax)
+	}
+
+	if len(o.Tag) > 0 {
+		ti += "_" + o.Tag
 	}
 
 	if ts {
