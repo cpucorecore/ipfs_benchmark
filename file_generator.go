@@ -34,7 +34,7 @@ func genFiles() error {
 
 	var prsWg sync.WaitGroup
 	prsWg.Add(1)
-	go processResults(&prsWg)
+	go countResults(&prsWg)
 
 	var wg sync.WaitGroup
 	for i := 0; i < input.Goroutines; i++ {
@@ -43,9 +43,9 @@ func genFiles() error {
 		go func(gid int) {
 			defer wg.Done()
 
-			rf, e := os.Open(URandom)
+			rf, e := os.Open(DeviceURandom)
 			if e != nil {
-				logger.Error("open file err", zap.String("file", URandom), zap.String("err", e.Error()))
+				logger.Error("open file err", zap.String("file", DeviceURandom), zap.String("err", e.Error()))
 				return
 			}
 			defer rf.Close()

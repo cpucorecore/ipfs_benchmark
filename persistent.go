@@ -9,7 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func File2bytes(name string) ([]byte, error) {
+const (
+	JsonSuffix = ".json"
+)
+
+func loadFile(name string) ([]byte, error) {
 	fi, e := os.Stat(name)
 	if e != nil {
 		return nil, e
@@ -30,25 +34,14 @@ func File2bytes(name string) ([]byte, error) {
 	return bs, nil
 }
 
-type Test struct {
-	Params  Params
-	Input   Input
-	Results []Result
-}
-
-func saveTest(t Test, ts bool) error {
-	b, e := json.MarshalIndent(t, "", "  ")
-	if e != nil {
-		return e
-	}
-
-	fp, e := os.Create(filepath.Join(TestResultDir, t.Input.info(ts)+".json"))
+func saveFile(name string, bs []byte) error {
+	fp, e := os.Create(name)
 	if e != nil {
 		return e
 	}
 	defer fp.Close()
 
-	_, e = fp.Write(b)
+	_, e = fp.Write(bs)
 	if e != nil {
 		return e
 	}
@@ -56,15 +49,57 @@ func saveTest(t Test, ts bool) error {
 	return nil
 }
 
+type Test struct {
+	Params         Params
+	Input          Input
+	ResultsSummary ResultsSummary
+}
+
+func saveTest(rs ResultsSummary) {
+	var ers []ErrResult
+	for _, r := range rs.Results {
+		if r.Ret != 0 {
+			ers = append(ers, ErrResult{Result: r, Err: r.Error})
+		}
+	}
+
+	title := input.info()
+	bs, e := json.MarshalIndent(ers, "", "  ")
+	if e != nil {
+		logger.Error("MarshalIndent err", zap.String("err", e.Error()))
+	} else {
+		e = saveFile(filepath.Join(ErrsDir, title+JsonSuffix), bs)
+		if e != nil {
+			logger.Error("saveFile err", zap.String("err", e.Error()))
+		}
+	}
+
+	t := Test{
+		Params:         params,
+		Input:          input,
+		ResultsSummary: rs,
+	}
+
+	bs, e = json.MarshalIndent(t, "", "  ")
+	if e != nil {
+		logger.Error("MarshalIndent err", zap.String("err", e.Error()))
+	} else {
+		e = saveFile(filepath.Join(ReportsDir, title+JsonSuffix), bs)
+		if e != nil {
+			logger.Error("saveFile err", zap.String("err", e.Error()))
+		}
+	}
+}
+
 func loadTest(name string) (Test, error) {
 	var t Test
 
-	b, e := File2bytes(name)
+	bs, e := loadFile(name)
 	if e != nil {
 		return t, e
 	}
 
-	e = json.Unmarshal(b, &t)
+	e = json.Unmarshal(bs, &t)
 	if e != nil {
 		return t, e
 	}
@@ -81,11 +116,11 @@ func loadTestCids(_ *cli.Context) error {
 		return e
 	}
 
-	if input.To > len(t.Results) {
-		input.To = len(t.Results)
+	if input.To > len(t.ResultsSummary.Results) {
+		input.To = len(t.ResultsSummary.Results)
 	}
 
-	for _, r := range t.Results[input.From:input.To] {
+	for _, r := range t.ResultsSummary.Results[input.From:input.To] {
 		if r.Cid != "" {
 			chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
 		}

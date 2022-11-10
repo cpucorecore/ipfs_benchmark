@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"time"
 )
 
 type Input struct {
@@ -19,7 +18,7 @@ type Input struct {
 	HostPort       string
 }
 
-func (o *Input) info(ts bool) string {
+func (o *Input) info() string {
 	ti := fmt.Sprintf("%s_%d-%d_g%d", o.TestCase, o.From, o.To, o.Goroutines)
 
 	if o.BlockSize > 0 {
@@ -30,12 +29,8 @@ func (o *Input) info(ts bool) string {
 		ti += fmt.Sprintf("_r%d-%d", o.ReplicationMin, o.ReplicationMax)
 	}
 
-	if len(o.Tag) > 0 {
+	if len(o.Tag) > 1 { // TODO check
 		ti += "_" + o.Tag
-	}
-
-	if ts {
-		ti += fmt.Sprintf("_%d", time.Now().Unix())
 	}
 
 	return ti

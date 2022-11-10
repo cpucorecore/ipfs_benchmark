@@ -9,17 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
-type Fid2Cid struct {
-	Fid int
-	Cid string
-}
-
 const (
-	TestResultDir    = "test_result"
-	ImagesDir        = "images"
-	CompareImagesDir = "compare_images"
-	URandom          = "/dev/urandom"
-	FakeFid          = -1
+	DeviceURandom = "/dev/urandom"
+	FakeFid       = -1
 )
 
 var (
@@ -32,9 +24,17 @@ var (
 	logger *zap.Logger
 )
 
-func main() {
+func init() {
 	logger, _ = zap.NewDevelopment()
 
+	ec := initDirs()
+	if ec > 0 {
+		logger.Error("initDirs failed", zap.Int("failed", ec))
+		os.Exit(-1)
+	}
+}
+
+func main() {
 	app := &cli.App{
 		Name: "ipfs_benchmark",
 		Flags: []cli.Flag{
@@ -64,12 +64,6 @@ func main() {
 				Destination: &params.Window,
 				Aliases:     []string{"w"},
 			},
-			&cli.StringFlag{
-				Name:        "test_result_file",
-				Usage:       "the file To save test result",
-				Destination: &params.TestResultFile,
-				Aliases:     []string{"trf"},
-			},
 			&cli.BoolFlag{
 				Name:        "verbose",
 				Usage:       "Verbose log",
@@ -91,39 +85,9 @@ func main() {
 				Destination: &input.Tag,
 				Aliases:     []string{"t"},
 			},
-			&cli.BoolFlag{
-				Name:        "timestamp", // TODO remove and save timestamp to test result file
-				Usage:       "add timestamp to test result file",
-				Value:       true,
-				Destination: &params.Timestamp,
-				Aliases:     []string{"ts"},
-			},
 		},
 		Before: func(context *cli.Context) error {
-			e := input.check()
-			if e != nil {
-				return e
-			}
-
-			e = os.MkdirAll(TestResultDir, os.ModePerm)
-			if e != nil {
-				logger.Error("create Dir err", zap.String("err", e.Error()))
-				return e
-			}
-
-			e = os.MkdirAll(ImagesDir, os.ModePerm)
-			if e != nil {
-				logger.Error("create Dir err", zap.String("err", e.Error()))
-				return e
-			}
-
-			e = os.MkdirAll(CompareImagesDir, os.ModePerm)
-			if e != nil {
-				logger.Error("create Dir err", zap.String("err", e.Error()))
-				return e
-			}
-
-			return nil
+			return input.check()
 		},
 		Commands: []*cli.Command{
 			{
@@ -138,7 +102,7 @@ func main() {
 					},
 				},
 				Action: func(context *cli.Context) error {
-					return Compare(
+					return CompareTests(
 						context.String("tag"),
 						context.Bool("sort_latency"),
 						context.Int("window"),
@@ -156,7 +120,16 @@ func main() {
 				Name: "cluster",
 				Subcommands: []*cli.Command{
 					{
-						Name:   "pin",
+						Name: "pin",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:        "test_result_file",
+								Usage:       "the file To save test result",
+								Destination: &params.TestResultFile,
+								Aliases:     []string{"trf"},
+								Required:    true,
+							},
+						},
 						Before: loadTestCids,
 						Subcommands: []*cli.Command{
 							{
@@ -235,7 +208,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = "ClusterUnpin"
-							bs, e := File2bytes(context.String("cids_file"))
+							bs, e := loadFile(context.String("cids_file"))
 							if e != nil {
 								return e
 							}
@@ -257,6 +230,15 @@ func main() {
 			},
 			{
 				Name: "ipfs",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "test_result_file",
+						Usage:       "the file To save test result",
+						Destination: &params.TestResultFile,
+						Aliases:     []string{"trf"},
+						Required:    true,
+					},
+				},
 				Subcommands: []*cli.Command{
 					{
 						Name:   "stat",

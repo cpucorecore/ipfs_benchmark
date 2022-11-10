@@ -18,6 +18,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type Fid2Cid struct {
+	Fid int
+	Cid string
+}
+
 var transport = &http.Transport{
 	DialContext: (&net.Dialer{
 		Timeout:   30 * time.Second,
@@ -84,7 +89,7 @@ func doRequests(method, path string) error {
 
 	var prsWg sync.WaitGroup
 	prsWg.Add(1)
-	go processResults(&prsWg)
+	go countResults(&prsWg)
 
 	var wg sync.WaitGroup
 	for i := 0; i < input.Goroutines; i++ {
@@ -216,7 +221,7 @@ func sendFiles() error {
 
 	var prsWg sync.WaitGroup
 	prsWg.Add(1)
-	go processResults(&prsWg)
+	go countResults(&prsWg)
 
 	chunker := fmt.Sprintf("size-%d", input.BlockSize)
 	noPin := fmt.Sprintf("%t", !input.Pin)
