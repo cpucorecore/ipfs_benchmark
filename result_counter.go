@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"sync"
 	"time"
 
@@ -87,7 +88,10 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 				zap.Float64("tps", tps),
 			)
 
-			rs.WindowTPSes = append(rs.WindowTPSes, plotter.XY{X: float64(rs.Samples), Y: tps})
+			if !math.IsNaN(tps) {
+				rs.WindowTPSes = append(rs.WindowTPSes, plotter.XY{X: float64(rs.Samples), Y: tps})
+			}
+
 			intervalSuccessCount = 0
 			intervalSumLatency = 0
 		}

@@ -53,6 +53,15 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 		logger.Error("httpClient do err", zap.String("err", e.Error()))
 		r.Ret = -1
 		r.Error = e
+		if resp.Body != nil {
+			logger.Debug("err with response")
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				logger.Error("read response err", zap.String("err", e.Error()))
+			}
+			resp.Body.Close()
+			r.Resp = string(body)
+		}
 		chResults <- r
 		return
 	}
@@ -148,8 +157,10 @@ func postFile(tid int, fid int) {
 	}
 	defer f.Close()
 
-	_, e = io.Copy(ff, f)
+	n, e := io.Copy(ff, f)
 	if e != nil {
+		logger.Error("read file err", zap.String("err", e.Error()), zap.Int64("read bytes", n))
+		w.Close()
 		r.Ret = -3
 		r.Error = e
 		chResults <- r
@@ -181,6 +192,15 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -6
 		r.Error = e
+		if resp.Body != nil {
+			logger.Debug("err with response")
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				logger.Error("read response err", zap.String("err", e.Error()))
+			}
+			resp.Body.Close()
+			r.Resp = string(body)
+		}
 		chResults <- r
 		return
 	}
