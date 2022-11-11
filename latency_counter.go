@@ -17,7 +17,7 @@ func countLatencies(latencies []float64) LatenciesSummary {
 	ls.Max = floats.Max(latencies)
 	ls.Mean = stat.Mean(latencies, nil)
 
-	ls.Latencies = latencies
+	ls.LatenciesMicroseconds = latencies
 
 	for _, latency := range latencies {
 		ls.SumLatency += latency

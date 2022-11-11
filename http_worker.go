@@ -48,6 +48,7 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 	r.S = time.Now()
 	resp, e := httpClient.Do(req)
 	r.E = time.Now()
+	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 	if e != nil { // TODO retry
 		logger.Error("httpClient do err", zap.String("err", e.Error()))
 		r.Ret = -1
@@ -176,6 +177,7 @@ func postFile(tid int, fid int) {
 	r.S = time.Now()
 	resp, e := httpClient.Do(req)
 	r.E = time.Now()
+	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 	if e != nil {
 		r.Ret = -6
 		r.Error = e

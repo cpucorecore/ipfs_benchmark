@@ -24,7 +24,7 @@ func CompareTests(tag string, sortLatency bool, window int, files ...string) err
 		linesTps[i] = Line{name: file, xys: rs.WindowTPSes}
 
 		var xys plotter.XYs
-		for j, v := range rs.LatenciesSummary.Latencies {
+		for j, v := range rs.LatenciesSummary.LatenciesMicroseconds {
 			xys = append(xys, plotter.XY{X: float64(j), Y: v})
 		}
 		linesLatency[i] = Line{name: file, xys: xys}

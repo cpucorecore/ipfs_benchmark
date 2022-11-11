@@ -8,6 +8,11 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
+const (
+	MillisecondPerSecond      = 1000
+	MicrosecondPerMillisecond = 1000
+)
+
 type ResultsSummary struct {
 	StartTime        time.Time
 	EndTime          time.Time
@@ -39,13 +44,14 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 	}
 
 	latencies := make(plotter.Values, 0, 10000)
-	var latency int64
 	var intervalSuccessCount, intervalSumLatency int64
 	for {
 		r, ok := <-in
 		if !ok {
 			rs.LatenciesSummary = countLatencies(latencies)
-			rs.TPS = float64(goroutines) * 1000 / (rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs))
+			rs.TPS = float64(goroutines) *
+				(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
+					(rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs)))
 			break
 		}
 
@@ -65,13 +71,14 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 		} else {
 			intervalSuccessCount++
 
-			latency = r.E.Sub(r.S).Milliseconds()
-			intervalSumLatency += latency
-			latencies = append(latencies, float64(latency))
+			intervalSumLatency += r.LatenciesMicroseconds
+			latencies = append(latencies, float64(r.LatenciesMicroseconds))
 		}
 
 		if rs.Samples%window == 0 {
-			tps := float64(goroutines*1000) / (float64(intervalSumLatency) / float64(intervalSuccessCount))
+			tps := float64(goroutines) *
+				(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
+					(rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs)))
 			logger.Info(
 				"window summary",
 				zap.Float64("seconds elapsed", time.Since(rs.StartTime).Seconds()),

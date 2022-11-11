@@ -21,7 +21,7 @@ func countResultsFile(file string, sortLatency bool, window int) (rs ResultsSumm
 	rs = processResults(in, t.Input.Goroutines, window)
 
 	if sortLatency {
-		sort.Float64s(rs.LatenciesSummary.Latencies)
+		sort.Float64s(rs.LatenciesSummary.LatenciesMicroseconds)
 	}
 
 	return rs, nil

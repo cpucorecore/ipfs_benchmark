@@ -103,6 +103,7 @@ func genFiles() error {
 				}
 				fd.Close()
 				r.E = time.Now()
+				r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r
 				if params.Verbose {
