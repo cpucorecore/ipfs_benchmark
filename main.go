@@ -215,6 +215,7 @@ func main() {
 								Value:       "cids list file",
 								Destination: &params.FilesDir,
 								Aliases:     []string{"c"},
+								Required:    true,
 							},
 						},
 						Before: func(context *cli.Context) error {
