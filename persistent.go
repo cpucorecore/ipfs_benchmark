@@ -122,8 +122,6 @@ func loadTest(name string) (Test, error) {
 }
 
 func loadTestCids() error {
-	defer close(chFid2Cids)
-
 	t, e := loadTest(params.TestResultFile)
 	if e != nil {
 		logger.Error("loadTest err", zap.String("err", e.Error()))
