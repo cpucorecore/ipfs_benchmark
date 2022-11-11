@@ -53,7 +53,7 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 		logger.Error("httpClient do err", zap.String("err", e.Error()))
 		r.Ret = -1
 		r.Error = e
-		if resp.Body != nil {
+		if resp != nil && resp.Body != nil {
 			logger.Debug("err with response")
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
@@ -192,7 +192,7 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -6
 		r.Error = e
-		if resp.Body != nil {
+		if resp != nil && resp.Body != nil {
 			logger.Debug("err with response")
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
