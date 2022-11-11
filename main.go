@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
@@ -11,14 +10,24 @@ import (
 
 const (
 	DeviceURandom = "/dev/urandom"
-	FakeFid       = -1
+)
+
+const (
+	TestCaseGenFile = "GenFile"
+
+	TestCaseIpfsStat = "IpfsStat"
+
+	TestCaseClusterAdd    = "ClusterAdd"
+	TestCaseClusterPinGet = "ClusterPinGet"
+	TestCaseClusterPinAdd = "ClusterPinAdd"
+	TestCaseClusterPinRm  = "ClusterPinRm"
 )
 
 var (
 	params Params
 	input  Input
 
-	chFid2Cids = make(chan Fid2Cid, 10000)
+	chFid2Cids = make(chan Fid2Cid, 20000)
 	chResults  = make(chan Result, 20000)
 
 	logger *zap.Logger
@@ -130,26 +139,28 @@ func main() {
 								Required:    true,
 							},
 						},
-						Before: loadTestCids,
+						Before: func(context *cli.Context) error {
+							return loadTestCids()
+						},
 						Subcommands: []*cli.Command{
 							{
 								Name: "get",
 								Action: func(context *cli.Context) error {
-									input.TestCase = "ClusterPinGet"
+									input.TestCase = TestCaseClusterPinGet
 									return doRequests(http.MethodGet, "/pins/")
 								},
 							},
 							{
 								Name: "add",
 								Action: func(context *cli.Context) error {
-									input.TestCase = "ClusterPinAdd"
+									input.TestCase = TestCaseClusterPinAdd
 									return doRequests(http.MethodPost, "/pins/ipfs/")
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									input.TestCase = "ClusterPinRm"
+									input.TestCase = TestCaseClusterPinRm
 									return doRequests(http.MethodDelete, "/pins/ipfs/")
 								},
 							},
@@ -191,7 +202,7 @@ func main() {
 							},
 						},
 						Action: func(context *cli.Context) error {
-							input.TestCase = "ClusterAdd"
+							input.TestCase = TestCaseClusterAdd
 							return sendFiles()
 						},
 					},
@@ -206,23 +217,11 @@ func main() {
 								Aliases:     []string{"c"},
 							},
 						},
+						Before: func(context *cli.Context) error {
+							return loadFileCids(context.String("cids_file"))
+						},
 						Action: func(context *cli.Context) error {
-							input.TestCase = "ClusterUnpin"
-							bs, e := loadFile(context.String("cids_file"))
-							if e != nil {
-								return e
-							}
-
-							cids := strings.Split(strings.TrimSpace(string(bs)), "\n")
-							go func() {
-								for _, cid := range cids {
-									if len(cid) > 10 {
-										chFid2Cids <- Fid2Cid{Fid: FakeFid, Cid: cid}
-									}
-								}
-								close(chFid2Cids)
-							}()
-
+							input.TestCase = TestCaseClusterPinRm
 							return doRequests(http.MethodDelete, "/pins/ipfs/")
 						},
 					},
@@ -241,10 +240,12 @@ func main() {
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name:   "stat",
-						Before: loadTestCids,
+						Name: "stat",
+						Before: func(context *cli.Context) error {
+							return loadTestCids()
+						},
 						Action: func(context *cli.Context) error {
-							input.TestCase = "IpfsStat"
+							input.TestCase = TestCaseIpfsStat
 							return doRequests(http.MethodPost, "/api/v0/repo/stat/")
 						},
 					},
@@ -268,7 +269,7 @@ func main() {
 					},
 				},
 				Action: func(context *cli.Context) error {
-					input.TestCase = "GenFile"
+					input.TestCase = TestCaseGenFile
 					return genFiles()
 				},
 			},

@@ -50,7 +50,7 @@ func genFiles() error {
 			}
 			defer rf.Close()
 
-			buffer := make([]byte, 1024*256)
+			buffer := make([]byte, 1024*1024)
 			for {
 				fid, ok := <-chFids
 				if !ok {

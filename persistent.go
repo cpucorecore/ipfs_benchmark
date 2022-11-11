@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 const (
+	FakeFid    = -1
 	JsonSuffix = ".json"
 )
 
@@ -55,7 +56,23 @@ type Test struct {
 	ResultsSummary ResultsSummary
 }
 
+func saveErrResults(file string, ers []ErrResult) error {
+	bs, e := json.MarshalIndent(ers, "", "  ")
+	if e != nil {
+		return e
+	} else {
+		e = saveFile(file, bs)
+		if e != nil {
+			return e
+		}
+	}
+
+	return nil
+}
+
 func saveTest(rs ResultsSummary) {
+	title := input.info()
+
 	var ers []ErrResult
 	for _, r := range rs.Results {
 		if r.Ret != 0 {
@@ -63,14 +80,10 @@ func saveTest(rs ResultsSummary) {
 		}
 	}
 
-	title := input.info()
-	bs, e := json.MarshalIndent(ers, "", "  ")
-	if e != nil {
-		logger.Error("MarshalIndent err", zap.String("err", e.Error()))
-	} else {
-		e = saveFile(filepath.Join(ErrsDir, title+JsonSuffix), bs)
+	if len(ers) > 0 {
+		e := saveErrResults(filepath.Join(ErrsDir, title+JsonSuffix), ers)
 		if e != nil {
-			logger.Error("saveFile err", zap.String("err", e.Error()))
+			logger.Error("saveErrResults err", zap.String("err", e.Error()))
 		}
 	}
 
@@ -80,14 +93,15 @@ func saveTest(rs ResultsSummary) {
 		ResultsSummary: rs,
 	}
 
-	bs, e = json.MarshalIndent(t, "", "  ")
+	bs, e := json.MarshalIndent(t, "", "  ")
 	if e != nil {
 		logger.Error("MarshalIndent err", zap.String("err", e.Error()))
-	} else {
-		e = saveFile(filepath.Join(ReportsDir, title+JsonSuffix), bs)
-		if e != nil {
-			logger.Error("saveFile err", zap.String("err", e.Error()))
-		}
+		return
+	}
+
+	e = saveFile(filepath.Join(ReportsDir, title+JsonSuffix), bs)
+	if e != nil {
+		logger.Error("saveFile err", zap.String("err", e.Error()))
 	}
 }
 
@@ -107,7 +121,7 @@ func loadTest(name string) (Test, error) {
 	return t, nil
 }
 
-func loadTestCids(_ *cli.Context) error {
+func loadTestCids() error {
 	defer close(chFid2Cids)
 
 	t, e := loadTest(params.TestResultFile)
@@ -120,11 +134,33 @@ func loadTestCids(_ *cli.Context) error {
 		input.To = len(t.ResultsSummary.Results)
 	}
 
-	for _, r := range t.ResultsSummary.Results[input.From:input.To] {
-		if r.Cid != "" {
-			chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
+	go func() {
+		for _, r := range t.ResultsSummary.Results[input.From:input.To] {
+			if r.Cid != "" {
+				chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
+			}
 		}
+		close(chFid2Cids)
+	}()
+
+	return nil
+}
+
+func loadFileCids(file string) error {
+	bs, e := loadFile(file)
+	if e != nil {
+		return e
 	}
+
+	cids := strings.Split(strings.TrimSpace(string(bs)), "\n")
+	go func() {
+		for _, cid := range cids {
+			if cid != "" {
+				chFid2Cids <- Fid2Cid{Fid: FakeFid, Cid: cid}
+			}
+		}
+		close(chFid2Cids)
+	}()
 
 	return nil
 }

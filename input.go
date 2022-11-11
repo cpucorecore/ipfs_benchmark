@@ -18,7 +18,7 @@ type Input struct {
 	HostPort       string
 }
 
-func (o *Input) info() string {
+func (o Input) info() string {
 	ti := fmt.Sprintf("%s_%d-%d_g%d", o.TestCase, o.From, o.To, o.Goroutines)
 
 	if o.BlockSize > 0 {
@@ -36,7 +36,7 @@ func (o *Input) info() string {
 	return ti
 }
 
-func (o *Input) check() error {
+func (o Input) check() error {
 	if o.From >= o.To {
 		return errors.New(fmt.Sprintf("wrong [from, to), from:%d, to:%d", o.From, o.To))
 	}
