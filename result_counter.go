@@ -78,7 +78,7 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 		if rs.Samples%window == 0 {
 			tps := float64(goroutines) *
 				(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
-					(rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs)))
+					(float64(intervalSumLatency) / float64(intervalSuccessCount)))
 			logger.Info(
 				"window summary",
 				zap.Float64("seconds elapsed", time.Since(rs.StartTime).Seconds()),
