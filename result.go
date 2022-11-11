@@ -12,8 +12,8 @@ type Result struct {
 	S                     time.Time
 	E                     time.Time
 	LatenciesMicroseconds int64
-	Error                 error  `json:"Error,omitempty"`
-	Resp                  string // TODO impl
+	//Error                 error  `json:"Error,omitempty"`
+	Resp string // TODO impl
 }
 
 type ErrResult struct {

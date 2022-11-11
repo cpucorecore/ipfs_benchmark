@@ -76,7 +76,8 @@ func saveTest(rs ResultsSummary) {
 	var ers []ErrResult
 	for _, r := range rs.Results {
 		if r.Ret != 0 {
-			ers = append(ers, ErrResult{Result: r, Err: r.Error})
+			//ers = append(ers, ErrResult{Result: r, Err: r.Error})
+			ers = append(ers, ErrResult{Result: r, Err: nil})
 		}
 	}
 
