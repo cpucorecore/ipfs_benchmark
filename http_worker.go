@@ -25,12 +25,12 @@ type Fid2Cid struct {
 
 var transport = &http.Transport{
 	DialContext: (&net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 120 * time.Second,
+		Timeout:   300 * time.Second,
+		KeepAlive: 1200 * time.Second,
 	}).DialContext,
 	MaxIdleConns:          1000,
 	IdleConnTimeout:       600 * time.Second,
-	ExpectContinueTimeout: 60 * time.Second,
+	ExpectContinueTimeout: 600 * time.Second,
 	MaxIdleConnsPerHost:   1000,
 }
 
@@ -52,7 +52,7 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 	if e != nil { // TODO retry
 		logger.Error("httpClient do err", zap.String("err", e.Error()))
 		r.Ret = -1
-		//r.Error = e
+		r.Err = e
 		if resp != nil && resp.Body != nil {
 			logger.Debug("err with response")
 			body, err := ioutil.ReadAll(resp.Body)
@@ -70,7 +70,7 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		r.Ret = -2
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -87,7 +87,7 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 			zap.String("resp", string(body)))
 
 		r.Ret = -3
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 	}
 
@@ -142,7 +142,7 @@ func postFile(tid int, fid int) {
 	ff, e := w.CreateFormFile("file", fidStr)
 	if e != nil {
 		r.Ret = -1
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -151,7 +151,7 @@ func postFile(tid int, fid int) {
 	f, e := os.Open(fp)
 	if e != nil {
 		r.Ret = -2
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -162,7 +162,7 @@ func postFile(tid int, fid int) {
 		logger.Error("read file err", zap.String("err", e.Error()), zap.Int64("read bytes", n))
 		w.Close()
 		r.Ret = -3
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -170,7 +170,7 @@ func postFile(tid int, fid int) {
 	e = w.Close()
 	if e != nil {
 		r.Ret = -4
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -178,7 +178,7 @@ func postFile(tid int, fid int) {
 	req, e := http.NewRequest(http.MethodPost, sendFileUrl, &b)
 	if e != nil {
 		r.Ret = -5
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -191,7 +191,7 @@ func postFile(tid int, fid int) {
 	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 	if e != nil {
 		r.Ret = -6
-		//r.Error = e
+		r.Err = e
 		if resp != nil && resp.Body != nil {
 			logger.Debug("err with response")
 			body, err := ioutil.ReadAll(resp.Body)
@@ -209,7 +209,7 @@ func postFile(tid int, fid int) {
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		r.Ret = -7
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -221,7 +221,7 @@ func postFile(tid int, fid int) {
 	cid, e := jsonparser.GetString(body, "cid")
 	if e != nil {
 		r.Ret = -8
-		//r.Error = e
+		r.Err = e
 		chResults <- r
 		return
 	}
@@ -289,6 +289,8 @@ func sendFiles() error {
 				postFile(gid, fid)
 			}
 		}(i)
+
+		time.Sleep(time.Second)
 	}
 	wg.Wait()
 

@@ -68,7 +68,7 @@ func genFiles() error {
 					logger.Error("create file err", zap.String("file", fp), zap.String("err", e.Error()))
 
 					r.Ret = -1
-					//r.Error = e
+					r.Err = e
 					chResults <- r
 
 					continue
@@ -82,7 +82,7 @@ func genFiles() error {
 						logger.Error("read file err", zap.String("err", e.Error()))
 
 						r.Ret = -2
-						//r.Error = e
+						r.Err = e
 						chResults <- r
 
 						break
@@ -93,7 +93,7 @@ func genFiles() error {
 						logger.Error("write file err", zap.String("err", e.Error()))
 
 						r.Ret = -3
-						//r.Error = e
+						r.Err = e
 						chResults <- r
 
 						break

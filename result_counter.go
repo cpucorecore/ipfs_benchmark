@@ -71,7 +71,6 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 			rs.ErrCounter[r.Ret]++
 		} else {
 			intervalSuccessCount++
-
 			intervalSumLatency += r.LatenciesMicroseconds
 			latencies = append(latencies, float64(r.LatenciesMicroseconds))
 		}
@@ -97,7 +96,7 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 		}
 	}
 
-	rs.ErrPercentage = float32(rs.Errs) / float32(rs.Samples)
+	rs.ErrPercentage = float32(rs.Errs) / float32(rs.Samples) * 100
 
 	return rs
 }
