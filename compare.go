@@ -9,7 +9,10 @@ import (
 )
 
 func CompareTests(tag string, sortTps, sortLatency bool, files ...string) error {
-	title := fmt.Sprintf("compare_%s_st%v_sl%v", tag, sortTps, sortLatency)
+	title := fmt.Sprintf("compare_st-%v_sl-%v", sortTps, sortLatency)
+	if len(tag) > 0 {
+		title += fmt.Sprintf("_%s", tag)
+	}
 
 	linesTps := make([]Line, len(files))
 	linesLatency := make([]Line, len(files))
