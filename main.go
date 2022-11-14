@@ -80,6 +80,13 @@ func main() {
 				Destination: &params.Verbose,
 				Aliases:     []string{"v"},
 			},
+			&cli.BoolFlag{
+				Name:        "sync",
+				Usage:       "sync concurrent request number",
+				Value:       false,
+				Destination: &params.Sync,
+				Aliases:     []string{"s"},
+			},
 			&cli.StringFlag{
 				Name:        "host_port",
 				Usage:       "api host and port",
@@ -147,21 +154,21 @@ func main() {
 								Name: "get",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinGet
-									return doRequests(http.MethodGet, "/pins/")
+									return doRequests(http.MethodGet, "/pins/", genHttpParamsEmpty)
 								},
 							},
 							{
 								Name: "add",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinAdd
-									return doRequests(http.MethodPost, "/pins/ipfs/")
+									return doRequests(http.MethodPost, "/pins/ipfs/", genHttpParamsClusterPinAdd)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinRm
-									return doRequests(http.MethodDelete, "/pins/ipfs/")
+									return doRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
 								},
 							},
 						},
@@ -223,7 +230,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseClusterPinRm
-							return doRequests(http.MethodDelete, "/pins/ipfs/")
+							return doRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
 						},
 					},
 				},
@@ -247,7 +254,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseIpfsStat
-							return doRequests(http.MethodPost, "/api/v0/repo/stat/")
+							return doRequests(http.MethodPost, "/api/v0/repo/stat/", genHttpParamsEmpty)
 						},
 					},
 				},

@@ -76,8 +76,8 @@ func genFiles() error {
 				}
 
 				var currentSize, rn, wn int
-				atomic.AddInt32(&activeHttpRequestCount, 1)
-				r.ConcurrentReqNumber = activeHttpRequestCount
+				atomic.AddInt32(&activeRequest, 1)
+				r.CurrentReqNumber = activeRequest
 				r.S = time.Now()
 				for currentSize < params.FileSize {
 					rn, e = rf.Read(buffer[:])
@@ -106,7 +106,7 @@ func genFiles() error {
 				}
 				fd.Close()
 				r.E = time.Now()
-				atomic.AddInt32(&activeHttpRequestCount, -1)
+				atomic.AddInt32(&activeRequest, -1)
 				r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r

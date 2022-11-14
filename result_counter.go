@@ -76,14 +76,14 @@ func processResults(in <-chan Result, _, window int) ResultsSummary {
 		} else {
 			intervalSuccessCount++
 			intervalSumLatency += r.LatenciesMicroseconds
-			rs.ConcurrentReqNumberSum += uint64(r.ConcurrentReqNumber)
+			rs.ConcurrentReqNumberSum += uint64(r.CurrentReqNumber)
 			latencies = append(latencies, float64(r.LatenciesMicroseconds))
 		}
 
 		if rs.Samples%window == 0 {
 			var tps float64 = 0
 			if intervalSumLatency > 0 && intervalSuccessCount > 0 {
-				tps = float64(r.ConcurrentReqNumber) *
+				tps = float64(r.CurrentReqNumber) *
 					(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
 						(float64(intervalSumLatency) / float64(intervalSuccessCount)))
 			}
@@ -93,7 +93,7 @@ func processResults(in <-chan Result, _, window int) ResultsSummary {
 				zap.Float64("seconds elapsed", time.Since(rs.StartTime).Seconds()),
 				zap.Int("samples", rs.Samples),
 				zap.Int("errs", rs.Errs),
-				zap.Float64("ConcurrentReqNumber", float64(r.ConcurrentReqNumber)),
+				zap.Float64("CurrentReqNumber", float64(r.CurrentReqNumber)),
 				zap.Float64("tps", tps),
 			)
 

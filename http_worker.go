@@ -8,7 +8,6 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -36,76 +35,73 @@ var transport = &http.Transport{
 }
 
 var httpClient = &http.Client{Transport: transport}
+var activeRequest int32
 
-func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
+func doHttpRequest(req *http.Request) (startTime, endTime time.Time, currentActiveRequest int32, e error, body string) {
+	if params.Sync {
+		atomic.AddInt32(&activeRequest, 1)
+		currentActiveRequest = activeRequest
+	} else {
+		currentActiveRequest = int32(input.Goroutines)
+	}
+	startTime = time.Now()
+	resp, e := httpClient.Do(req)
+	endTime = time.Now()
+	if params.Sync {
+		atomic.AddInt32(&activeRequest, -1)
+	}
+
+	if e != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	respBody, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		return
+	}
+	body = string(respBody)
+
+	return
+}
+
+func doRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr string) {
 	r := Result{
 		Gid: gid,
 		Fid: fid2cid.Fid,
 		Cid: fid2cid.Cid,
 	}
 
-	var req *http.Request
-	req, _ = http.NewRequest(method, url+fid2cid.Cid, nil)
-
-	atomic.AddInt32(&activeHttpRequestCount, 1)
-	r.ConcurrentReqNumber = activeHttpRequestCount
-	r.S = time.Now()
-	resp, e := httpClient.Do(req)
-	r.E = time.Now()
-	atomic.AddInt32(&activeHttpRequestCount, -1)
-	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
-	if e != nil { // TODO retry
-		logger.Error("httpClient do err", zap.String("err", e.Error()))
-		r.Ret = -1
-		r.Err = e
-		if resp != nil && resp.Body != nil {
-			logger.Debug("err with response")
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				logger.Error("read response err", zap.String("err", e.Error()))
-			}
-			resp.Body.Close()
-			r.Resp = string(body)
-		}
-		chResults <- r
-		return
+	u := baseUrl + fid2cid.Cid + paramsStr
+	if params.Verbose {
+		logger.Debug("request url", zap.String("url", u))
 	}
 
-	defer resp.Body.Close()
-	body, e := ioutil.ReadAll(resp.Body)
-	if e != nil {
-		r.Ret = -2
-		r.Err = e
+	req, _ := http.NewRequest(method, u, nil)
+
+	r.S, r.E, r.CurrentReqNumber, r.Err, r.Resp = doHttpRequest(req)
+	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
+	if r.Err != nil {
+		r.Ret = -6
 		chResults <- r
 		return
 	}
 
 	if params.Verbose {
-		logger.Info("http response", zap.String("body", string(body)))
-	}
-
-	if resp.StatusCode != 200 && resp.StatusCode != 404 { // TODO retry
-		logger.Error("do http request failed",
-			zap.Int("fid", fid2cid.Fid),
-			zap.String("cid", fid2cid.Cid),
-			zap.Int("status", resp.StatusCode),
-			zap.String("resp", string(body)))
-
-		r.Ret = -3
-		r.Err = e
-		chResults <- r
+		logger.Debug("http response", zap.String("body", r.Resp))
 	}
 
 	chResults <- r
 }
 
-func doRequests(method, path string) error {
-	url := "http://" + input.HostPort + path
+func doRequests(method, path string, pf func() string) error {
+	baseUrl := "http://" + input.HostPort + path
 
 	var prsWg sync.WaitGroup
 	prsWg.Add(1)
 	go countResults(&prsWg)
 
+	paramsStr := pf()
 	var wg sync.WaitGroup
 	for i := 0; i < input.Goroutines; i++ {
 		wg.Add(1)
@@ -119,7 +115,7 @@ func doRequests(method, path string) error {
 					return
 				}
 
-				doRequest(gid, method, url, cid)
+				doRequest(gid, method, baseUrl, cid, paramsStr)
 			}
 		}(i)
 	}
@@ -131,7 +127,6 @@ func doRequests(method, path string) error {
 	return nil
 }
 
-var activeHttpRequestCount int32
 var sendFileUrl string
 
 func postFile(tid int, fid int) {
@@ -166,7 +161,6 @@ func postFile(tid int, fid int) {
 	n, e := io.Copy(ff, f)
 	if e != nil {
 		logger.Error("read file err", zap.String("err", e.Error()), zap.Int64("read bytes", n))
-		w.Close()
 		r.Ret = -3
 		r.Err = e
 		chResults <- r
@@ -191,45 +185,21 @@ func postFile(tid int, fid int) {
 
 	req.Header.Add("Content-Type", w.FormDataContentType())
 
-	atomic.AddInt32(&activeHttpRequestCount, 1)
-	r.ConcurrentReqNumber = activeHttpRequestCount
-	r.S = time.Now()
-	resp, e := httpClient.Do(req)
-	r.E = time.Now()
-	atomic.AddInt32(&activeHttpRequestCount, -1)
+	r.S, r.E, r.CurrentReqNumber, r.Err, r.Resp = doHttpRequest(req)
 	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
-	if e != nil {
+	if r.Err != nil {
 		r.Ret = -6
-		r.Err = e
-		if resp != nil && resp.Body != nil {
-			logger.Debug("err with response")
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				logger.Error("read response err", zap.String("err", e.Error()))
-			}
-			resp.Body.Close()
-			r.Resp = string(body)
-		}
-		chResults <- r
-		return
-	}
-
-	defer resp.Body.Close()
-	body, e := ioutil.ReadAll(resp.Body)
-	if e != nil {
-		r.Ret = -7
-		r.Err = e
 		chResults <- r
 		return
 	}
 
 	if params.Verbose {
-		logger.Info("http response", zap.String("body", string(body)))
+		logger.Info("http response", zap.String("body", r.Resp))
 	}
 
-	cid, e := jsonparser.GetString(body, "cid")
+	cid, e := jsonparser.GetString([]byte(r.Resp), "cid")
 	if e != nil {
-		r.Ret = -8
+		r.Ret = -7
 		r.Err = e
 		chResults <- r
 		return
@@ -254,22 +224,7 @@ func sendFiles() error {
 	prsWg.Add(1)
 	go countResults(&prsWg)
 
-	chunker := fmt.Sprintf("size-%d", input.BlockSize)
-	noPin := fmt.Sprintf("%t", !input.Pin)
-	replicationMin := fmt.Sprintf("%d", input.ReplicationMin)
-	replicationMax := fmt.Sprintf("%d", input.ReplicationMax)
-	httpParams := url.Values{
-		"chunker":         {chunker},
-		"cid-version":     {"0"},
-		"format":          {"unixfs"},
-		"local":           {"false"},
-		"mode":            {"recursive"},
-		"no-pin":          {noPin},
-		"replication-min": {replicationMin},
-		"replication-max": {replicationMax},
-	}
-
-	sendFileUrl = "http://" + input.HostPort + "/add?" + httpParams.Encode()
+	sendFileUrl = "http://" + input.HostPort + "/add?" + genHttpParamsClusterAdd()
 	if params.Verbose {
 		logger.Debug(sendFileUrl)
 	}
@@ -298,8 +253,6 @@ func sendFiles() error {
 				postFile(gid, fid)
 			}
 		}(i)
-
-		time.Sleep(time.Second)
 	}
 	wg.Wait()
 

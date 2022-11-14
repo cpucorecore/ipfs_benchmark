@@ -39,9 +39,6 @@ var (
 			Max:        10,
 			Mean:       4,
 			SumLatency: 40,
-			Latencies: []float64{
-				1, 10, 9, 2, 2, 2, 2, 2, 2, 4,
-			},
 		},
 	}
 
