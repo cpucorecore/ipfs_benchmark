@@ -8,8 +8,8 @@ import (
 func countLatencies(latencies []float64) LatenciesSummary {
 	var ls LatenciesSummary
 
-	ls.Quantity = len(latencies)
-	if ls.Quantity == 0 {
+	ls.Samples = len(latencies)
+	if ls.Samples == 0 {
 		return ls
 	}
 
@@ -17,7 +17,7 @@ func countLatencies(latencies []float64) LatenciesSummary {
 	ls.Max = floats.Max(latencies)
 	ls.Mean = stat.Mean(latencies, nil)
 
-	ls.LatenciesMicroseconds = latencies
+	ls.Latencies = latencies
 
 	for _, latency := range latencies {
 		ls.SumLatency += latency

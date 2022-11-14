@@ -66,13 +66,6 @@ func main() {
 				Value:       100,
 				Destination: &input.To,
 			},
-			&cli.IntFlag{
-				Name:        "window",
-				Usage:       "analyseResults Window",
-				Value:       100,
-				Destination: &params.Window,
-				Aliases:     []string{"w"},
-			},
 			&cli.BoolFlag{
 				Name:        "verbose",
 				Usage:       "Verbose log",
@@ -116,11 +109,18 @@ func main() {
 						Value:   true,
 						Aliases: []string{"sl"},
 					},
+					&cli.BoolFlag{
+						Name:    "sort_tps",
+						Usage:   "sort the window tps values",
+						Value:   true,
+						Aliases: []string{"st"},
+					},
 				},
 				Action: func(context *cli.Context) error {
 					return CompareTests(
 						context.String("tag"),
 						context.Bool("sort_latency"),
+						context.Bool("sort_tps"),
 						context.Int("window"),
 						context.Args().Slice()...)
 				},
@@ -159,6 +159,20 @@ func main() {
 							},
 							{
 								Name: "add",
+								Flags: []cli.Flag{
+									&cli.IntFlag{
+										Name:        "replication_min",
+										Value:       2,
+										Destination: &input.ReplicationMin,
+										Aliases:     []string{"rmin"},
+									},
+									&cli.IntFlag{
+										Name:        "replication_max",
+										Value:       2,
+										Destination: &input.ReplicationMax,
+										Aliases:     []string{"rmax"},
+									},
+								},
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinAdd
 									return doRequests(http.MethodPost, "/pins/ipfs/", genHttpParamsClusterPinAdd)

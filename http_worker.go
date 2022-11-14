@@ -79,8 +79,8 @@ func doRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr strin
 
 	req, _ := http.NewRequest(method, u, nil)
 
-	r.S, r.E, r.CurrentReqNumber, r.Err, r.Resp = doHttpRequest(req)
-	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
+	r.S, r.E, r.Concurrency, r.Err, r.Resp = doHttpRequest(req)
+	r.Latency = r.E.Sub(r.S).Microseconds()
 	if r.Err != nil {
 		r.Ret = -6
 		chResults <- r
@@ -185,8 +185,8 @@ func postFile(tid int, fid int) {
 
 	req.Header.Add("Content-Type", w.FormDataContentType())
 
-	r.S, r.E, r.CurrentReqNumber, r.Err, r.Resp = doHttpRequest(req)
-	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
+	r.S, r.E, r.Concurrency, r.Err, r.Resp = doHttpRequest(req)
+	r.Latency = r.E.Sub(r.S).Microseconds()
 	if r.Err != nil {
 		r.Ret = -6
 		chResults <- r

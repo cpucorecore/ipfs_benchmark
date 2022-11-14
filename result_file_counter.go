@@ -4,7 +4,7 @@ import (
 	"sort"
 )
 
-func countResultsFile(file string, sortLatency bool, window int) (rs ResultsSummary, e error) {
+func countResultsFile(file string, sortLatency, sortTps bool) (rs ResultsSummary, e error) {
 	t, e := loadTest(file)
 	if e != nil {
 		return rs, e
@@ -18,10 +18,14 @@ func countResultsFile(file string, sortLatency bool, window int) (rs ResultsSumm
 		close(in)
 	}()
 
-	rs = processResults(in, t.Input.Goroutines, window)
+	rs = processResults(in)
 
 	if sortLatency {
-		sort.Float64s(rs.LatenciesSummary.LatenciesMicroseconds)
+		sort.Float64s(rs.LatenciesSummary.Latencies)
+	}
+
+	if sortTps {
+
 	}
 
 	return rs, nil

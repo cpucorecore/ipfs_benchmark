@@ -34,7 +34,7 @@ var (
 			},
 		},
 		LatenciesSummary: LatenciesSummary{
-			Quantity:   10,
+			Samples:    10,
 			Min:        1,
 			Max:        10,
 			Mean:       4,
@@ -55,7 +55,6 @@ var (
 
 	testParams = Params{
 		Verbose:        false,
-		Window:         10,
 		TestResultFile: "",
 		FilesDir:       "",
 		FileSize:       0,

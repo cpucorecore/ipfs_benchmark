@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math"
 	"sync"
 	"time"
 
@@ -15,28 +14,30 @@ const (
 )
 
 type ResultsSummary struct {
-	StartTime              time.Time
-	EndTime                time.Time
-	Samples                int
-	Errs                   int
-	ErrPercentage          float32
-	TPS                    float64
-	ConcurrentReqNumberSum uint64
-	ErrCounter             map[int]int
-	WindowTPSes            plotter.XYs
-	Results                []Result
-	LatenciesSummary       LatenciesSummary
+	StartTime        time.Time
+	EndTime          time.Time
+	Samples          int
+	Errs             int
+	ErrPercentage    float32
+	TPS              float64
+	TPSSingleThread  float64
+	ConcurrencyAvg   float64
+	ConcurrencySum   uint64
+	ErrCounter       map[int]int
+	WindowTPSes      plotter.XYs
+	Results          []Result
+	LatenciesSummary LatenciesSummary
 }
 
 func countResults(wg *sync.WaitGroup) {
 	time.Now().UnixMilli()
 	defer wg.Done()
 
-	rs := processResults(chResults, input.Goroutines, params.Window)
+	rs := processResults(chResults)
 	outputSummary(rs)
 }
 
-func processResults(in <-chan Result, _, window int) ResultsSummary {
+func processResults(in <-chan Result) ResultsSummary {
 	rs := ResultsSummary{
 		StartTime:   time.Now(),
 		EndTime:     time.Now(),
@@ -46,16 +47,16 @@ func processResults(in <-chan Result, _, window int) ResultsSummary {
 	}
 
 	latencies := make(plotter.Values, 0, 10000)
-	var intervalSuccessCount, intervalSumLatency int64
+	tpses := make(plotter.Values, 0, 10000)
 	for {
 		r, ok := <-in
 		if !ok {
 			rs.LatenciesSummary = countLatencies(latencies)
-			rs.TPS = 0
-			if rs.LatenciesSummary.SumLatency > 0 && (rs.Samples-rs.Errs) > 0 {
-				rs.TPS = (float64(rs.ConcurrentReqNumberSum) / float64(rs.Samples-rs.Errs)) *
-					(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
-						(rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs)))
+			samplesSuccess := rs.Samples - rs.Errs
+			if samplesSuccess > 0 {
+				rs.ConcurrencyAvg = float64(rs.ConcurrencySum) / float64(samplesSuccess)
+				rs.TPSSingleThread = float64(MillisecondPerSecond*MicrosecondPerMillisecond) / (rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs))
+				rs.TPS = rs.ConcurrencyAvg * rs.TPSSingleThread
 			}
 			break
 		}
@@ -73,37 +74,28 @@ func processResults(in <-chan Result, _, window int) ResultsSummary {
 		if r.Ret != 0 {
 			rs.Errs++
 			rs.ErrCounter[r.Ret]++
+
+			tpses = append(tpses, 0)
 		} else {
-			intervalSuccessCount++
-			intervalSumLatency += r.LatenciesMicroseconds
-			rs.ConcurrentReqNumberSum += uint64(r.CurrentReqNumber)
-			latencies = append(latencies, float64(r.LatenciesMicroseconds))
+			rs.ConcurrencySum += uint64(r.Concurrency)
+			tpses = append(tpses, float64(r.Concurrency)*(float64(MillisecondPerSecond*MicrosecondPerMillisecond)/float64(r.Latency)))
+			latencies = append(latencies, float64(r.Latency))
 		}
 
-		if rs.Samples%window == 0 {
-			var tps float64 = 0
-			if intervalSumLatency > 0 && intervalSuccessCount > 0 {
-				tps = float64(r.CurrentReqNumber) *
-					(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
-						(float64(intervalSumLatency) / float64(intervalSuccessCount)))
-			}
-
+		if params.Verbose {
 			logger.Info(
-				"window summary",
+				"req summary",
 				zap.Float64("seconds elapsed", time.Since(rs.StartTime).Seconds()),
 				zap.Int("samples", rs.Samples),
 				zap.Int("errs", rs.Errs),
-				zap.Float64("CurrentReqNumber", float64(r.CurrentReqNumber)),
-				zap.Float64("tps", tps),
+				zap.Float64("Concurrency", float64(r.Concurrency)),
+				zap.Float64("tps", tpses[len(tpses)-1]),
 			)
-
-			if !math.IsNaN(tps) {
-				rs.WindowTPSes = append(rs.WindowTPSes, plotter.XY{X: float64(rs.Samples), Y: tps})
-			}
-
-			intervalSuccessCount = 0
-			intervalSumLatency = 0
 		}
+	}
+
+	for i, tps := range tpses {
+		rs.WindowTPSes = append(rs.WindowTPSes, plotter.XY{X: float64(i + 1), Y: tps})
 	}
 
 	rs.ErrPercentage = float32(rs.Errs) / float32(rs.Samples) * 100

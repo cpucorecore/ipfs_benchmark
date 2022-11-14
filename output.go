@@ -20,7 +20,7 @@ func outputSummary(rs ResultsSummary) {
 		XLabel,
 		LatencyYLabel,
 		filepath.Join(ImagesLatencyDir, title+PngSuffix),
-		rs.LatenciesSummary.LatenciesMicroseconds,
+		rs.LatenciesSummary.Latencies,
 	)
 	if e != nil {
 		logger.Error("DrawValues err", zap.String("err", e.Error()))
