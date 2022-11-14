@@ -15,16 +15,17 @@ const (
 )
 
 type ResultsSummary struct {
-	StartTime        time.Time
-	EndTime          time.Time
-	Samples          int
-	Errs             int
-	ErrPercentage    float32
-	TPS              float64
-	ErrCounter       map[int]int
-	WindowTPSes      plotter.XYs
-	Results          []Result
-	LatenciesSummary LatenciesSummary
+	StartTime              time.Time
+	EndTime                time.Time
+	Samples                int
+	Errs                   int
+	ErrPercentage          float32
+	TPS                    float64
+	ConcurrentReqNumberSum uint64
+	ErrCounter             map[int]int
+	WindowTPSes            plotter.XYs
+	Results                []Result
+	LatenciesSummary       LatenciesSummary
 }
 
 func countResults(wg *sync.WaitGroup) {
@@ -35,7 +36,7 @@ func countResults(wg *sync.WaitGroup) {
 	outputSummary(rs)
 }
 
-func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
+func processResults(in <-chan Result, _, window int) ResultsSummary {
 	rs := ResultsSummary{
 		StartTime:   time.Now(),
 		EndTime:     time.Now(),
@@ -50,9 +51,12 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 		r, ok := <-in
 		if !ok {
 			rs.LatenciesSummary = countLatencies(latencies)
-			rs.TPS = float64(goroutines) *
-				(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
-					(rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs)))
+			rs.TPS = 0
+			if rs.LatenciesSummary.SumLatency > 0 && (rs.Samples-rs.Errs) > 0 {
+				rs.TPS = (float64(rs.ConcurrentReqNumberSum) / float64(rs.Samples-rs.Errs)) *
+					(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
+						(rs.LatenciesSummary.SumLatency / float64(rs.Samples-rs.Errs)))
+			}
 			break
 		}
 
@@ -72,18 +76,24 @@ func processResults(in <-chan Result, goroutines, window int) ResultsSummary {
 		} else {
 			intervalSuccessCount++
 			intervalSumLatency += r.LatenciesMicroseconds
+			rs.ConcurrentReqNumberSum += uint64(r.ConcurrentReqNumber)
 			latencies = append(latencies, float64(r.LatenciesMicroseconds))
 		}
 
 		if rs.Samples%window == 0 {
-			tps := float64(goroutines) *
-				(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
-					(float64(intervalSumLatency) / float64(intervalSuccessCount)))
+			var tps float64 = 0
+			if intervalSumLatency > 0 && intervalSuccessCount > 0 {
+				tps = float64(r.ConcurrentReqNumber) *
+					(float64(MillisecondPerSecond*MicrosecondPerMillisecond) /
+						(float64(intervalSumLatency) / float64(intervalSuccessCount)))
+			}
+
 			logger.Info(
 				"window summary",
 				zap.Float64("seconds elapsed", time.Since(rs.StartTime).Seconds()),
 				zap.Int("samples", rs.Samples),
 				zap.Int("errs", rs.Errs),
+				zap.Float64("ConcurrentReqNumber", float64(r.ConcurrentReqNumber)),
 				zap.Float64("tps", tps),
 			)
 

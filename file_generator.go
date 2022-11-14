@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -75,6 +76,8 @@ func genFiles() error {
 				}
 
 				var currentSize, rn, wn int
+				atomic.AddInt32(&activeHttpRequestCount, 1)
+				r.ConcurrentReqNumber = activeHttpRequestCount
 				r.S = time.Now()
 				for currentSize < params.FileSize {
 					rn, e = rf.Read(buffer[:])
@@ -103,6 +106,7 @@ func genFiles() error {
 				}
 				fd.Close()
 				r.E = time.Now()
+				atomic.AddInt32(&activeHttpRequestCount, -1)
 				r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r

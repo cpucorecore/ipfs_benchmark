@@ -12,6 +12,7 @@ type Result struct {
 	S                     time.Time
 	E                     time.Time
 	LatenciesMicroseconds int64
+	ConcurrentReqNumber   int32
 	Err                   error  `json:"-"`
 	Resp                  string `json:"-"`
 }

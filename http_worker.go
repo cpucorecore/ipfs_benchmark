@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -45,9 +46,13 @@ func doRequest(gid int, method, url string, fid2cid Fid2Cid) {
 
 	var req *http.Request
 	req, _ = http.NewRequest(method, url+fid2cid.Cid, nil)
+
+	atomic.AddInt32(&activeHttpRequestCount, 1)
+	r.ConcurrentReqNumber = activeHttpRequestCount
 	r.S = time.Now()
 	resp, e := httpClient.Do(req)
 	r.E = time.Now()
+	atomic.AddInt32(&activeHttpRequestCount, -1)
 	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 	if e != nil { // TODO retry
 		logger.Error("httpClient do err", zap.String("err", e.Error()))
@@ -126,6 +131,7 @@ func doRequests(method, path string) error {
 	return nil
 }
 
+var activeHttpRequestCount int32
 var sendFileUrl string
 
 func postFile(tid int, fid int) {
@@ -185,9 +191,12 @@ func postFile(tid int, fid int) {
 
 	req.Header.Add("Content-Type", w.FormDataContentType())
 
+	atomic.AddInt32(&activeHttpRequestCount, 1)
+	r.ConcurrentReqNumber = activeHttpRequestCount
 	r.S = time.Now()
 	resp, e := httpClient.Do(req)
 	r.E = time.Now()
+	atomic.AddInt32(&activeHttpRequestCount, -1)
 	r.LatenciesMicroseconds = r.E.Sub(r.S).Microseconds()
 	if e != nil {
 		r.Ret = -6
