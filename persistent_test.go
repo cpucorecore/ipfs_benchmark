@@ -14,7 +14,6 @@ var (
 		ErrPercentage: 0,
 		TPS:           0,
 		ErrCounter:    nil,
-		WindowTPSes:   nil,
 		Results: []Result{
 			{
 				Gid: 0,
@@ -33,7 +32,7 @@ var (
 				Cid: "Cid2",
 			},
 		},
-		LatenciesSummary: LatenciesSummary{
+		LatencySummary: LatencySummary{
 			Samples:    10,
 			Min:        1,
 			Max:        10,

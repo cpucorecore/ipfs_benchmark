@@ -104,24 +104,23 @@ func main() {
 				Usage: "compare test result",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:    "sort_latency",
-						Usage:   "sort the latencies",
-						Value:   true,
-						Aliases: []string{"sl"},
-					},
-					&cli.BoolFlag{
 						Name:    "sort_tps",
 						Usage:   "sort the window tps values",
 						Value:   true,
 						Aliases: []string{"st"},
 					},
+					&cli.BoolFlag{
+						Name:    "sort_latency",
+						Usage:   "sort the latencies",
+						Value:   true,
+						Aliases: []string{"sl"},
+					},
 				},
 				Action: func(context *cli.Context) error {
 					return CompareTests(
 						context.String("tag"),
-						context.Bool("sort_latency"),
 						context.Bool("sort_tps"),
-						context.Int("window"),
+						context.Bool("sort_latency"),
 						context.Args().Slice()...)
 				},
 			},

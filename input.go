@@ -29,7 +29,7 @@ func (o Input) info() string {
 		ti += fmt.Sprintf("_r%d-%d", o.ReplicationMin, o.ReplicationMax)
 	}
 
-	if len(o.Tag) > 1 { // TODO check
+	if len(o.Tag) > 0 {
 		ti += "_" + o.Tag
 	}
 

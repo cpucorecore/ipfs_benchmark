@@ -21,11 +21,11 @@ func countResultsFile(file string, sortLatency, sortTps bool) (rs ResultsSummary
 	rs = processResults(in)
 
 	if sortLatency {
-		sort.Float64s(rs.LatenciesSummary.Latencies)
+		sort.Float64s(rs.LatencySummary.Latencies)
 	}
 
 	if sortTps {
-
+		sort.Float64s(rs.TPSes)
 	}
 
 	return rs, nil

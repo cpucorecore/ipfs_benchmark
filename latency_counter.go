@@ -5,8 +5,8 @@ import (
 	"gonum.org/v1/gonum/stat"
 )
 
-func countLatencies(latencies []float64) LatenciesSummary {
-	var ls LatenciesSummary
+func countLatencies(latencies []float64) LatencySummary {
+	var ls LatencySummary
 
 	ls.Samples = len(latencies)
 	if ls.Samples == 0 {

@@ -35,20 +35,22 @@ var transport = &http.Transport{
 }
 
 var httpClient = &http.Client{Transport: transport}
-var activeRequest int32
+var concurrency int32
 
-func doHttpRequest(req *http.Request) (startTime, endTime time.Time, currentActiveRequest int32, e error, body string) {
+func doHttpRequest(req *http.Request) (startTime, endTime time.Time, currentConcurrency int32, e error, body string) {
 	if params.Sync {
-		atomic.AddInt32(&activeRequest, 1)
-		currentActiveRequest = activeRequest
+		atomic.AddInt32(&concurrency, 1)
+		currentConcurrency = concurrency
 	} else {
-		currentActiveRequest = int32(input.Goroutines)
+		currentConcurrency = int32(input.Goroutines)
 	}
+
 	startTime = time.Now()
 	resp, e := httpClient.Do(req)
 	endTime = time.Now()
+
 	if params.Sync {
-		atomic.AddInt32(&activeRequest, -1)
+		atomic.AddInt32(&concurrency, -1)
 	}
 
 	if e != nil {
@@ -72,12 +74,12 @@ func doRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr strin
 		Cid: fid2cid.Cid,
 	}
 
-	u := baseUrl + fid2cid.Cid + paramsStr
+	url := baseUrl + fid2cid.Cid + paramsStr
 	if params.Verbose {
-		logger.Debug("request url", zap.String("url", u))
+		logger.Debug("request url", zap.String("url", url))
 	}
 
-	req, _ := http.NewRequest(method, u, nil)
+	req, _ := http.NewRequest(method, url, nil)
 
 	r.S, r.E, r.Concurrency, r.Err, r.Resp = doHttpRequest(req)
 	r.Latency = r.E.Sub(r.S).Microseconds()
@@ -127,7 +129,7 @@ func doRequests(method, path string, pf func() string) error {
 	return nil
 }
 
-var sendFileUrl string
+var urlAdd string
 
 func postFile(tid int, fid int) {
 	r := Result{
@@ -175,7 +177,7 @@ func postFile(tid int, fid int) {
 		return
 	}
 
-	req, e := http.NewRequest(http.MethodPost, sendFileUrl, &b)
+	req, e := http.NewRequest(http.MethodPost, urlAdd, &b)
 	if e != nil {
 		r.Ret = -5
 		r.Err = e
@@ -188,6 +190,7 @@ func postFile(tid int, fid int) {
 	r.S, r.E, r.Concurrency, r.Err, r.Resp = doHttpRequest(req)
 	r.Latency = r.E.Sub(r.S).Microseconds()
 	if r.Err != nil {
+		logger.Error("doHttpRequest err", zap.String("err", r.Err.Error()))
 		r.Ret = -6
 		chResults <- r
 		return
@@ -224,9 +227,9 @@ func sendFiles() error {
 	prsWg.Add(1)
 	go countResults(&prsWg)
 
-	sendFileUrl = "http://" + input.HostPort + "/add?" + genHttpParamsClusterAdd()
+	urlAdd = "http://" + input.HostPort + "/add" + genHttpParamsClusterAdd()
 	if params.Verbose {
-		logger.Debug(sendFileUrl)
+		logger.Debug(urlAdd)
 	}
 
 	chFids := make(chan int, 10000)
