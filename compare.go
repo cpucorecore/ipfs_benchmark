@@ -3,15 +3,19 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"go.uber.org/zap"
 	"gonum.org/v1/plot/plotter"
 )
 
-func CompareTests(tag string, sortTps, sortLatency bool, files ...string) error {
+func CompareTests(tag string, sortTps, sortLatency, timestamp bool, files ...string) error {
 	title := fmt.Sprintf("compare_st-%v_sl-%v", sortTps, sortLatency)
 	if len(tag) > 0 {
 		title += fmt.Sprintf("_%s", tag)
+	}
+	if timestamp {
+		title += fmt.Sprintf("_%d", time.Now().Unix())
 	}
 
 	linesTps := make([]Line, len(files))

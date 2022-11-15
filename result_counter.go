@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -49,10 +51,22 @@ func processResults(in <-chan Result) ResultsSummary {
 
 	latencies := make(plotter.Values, 0, 10000)
 
+	cnt := 0
 	for {
 		r, ok := <-in
 		if !ok {
 			break
+		}
+
+		cnt++
+		if cnt%100 == 0 {
+			errsInfo, _ := json.Marshal(rs.ErrCounter)
+			logger.Info(fmt.Sprintf("progress:%d/%d %g%%, errs:%d, ErrCounter:%s",
+				cnt,
+				input.To-input.From,
+				float32(cnt*100)/float32(input.To-input.From),
+				rs.Errs,
+				string(errsInfo)))
 		}
 
 		rs.Samples++

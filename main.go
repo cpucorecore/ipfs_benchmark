@@ -104,6 +104,12 @@ func main() {
 				Usage: "compare test result",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
+						Name:    "timestamp",
+						Usage:   "add timestamp to the file name",
+						Value:   true,
+						Aliases: []string{"t"},
+					},
+					&cli.BoolFlag{
 						Name:    "sort_tps",
 						Usage:   "sort the window tps values",
 						Value:   true,
@@ -121,6 +127,7 @@ func main() {
 						context.String("tag"),
 						context.Bool("sort_tps"),
 						context.Bool("sort_latency"),
+						context.Bool("timestamp"),
 						context.Args().Slice()...)
 				},
 			},
@@ -153,7 +160,7 @@ func main() {
 								Name: "get",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinGet
-									return doRequests(http.MethodGet, "/pins/", genHttpParamsEmpty)
+									return doIPFSRequests(http.MethodGet, "/pins/", genHttpParamsEmpty)
 								},
 							},
 							{
@@ -174,14 +181,14 @@ func main() {
 								},
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinAdd
-									return doRequests(http.MethodPost, "/pins/ipfs/", genHttpParamsClusterPinAdd)
+									return doIPFSRequests(http.MethodPost, "/pins/ipfs/", genHttpParamsClusterPinAdd)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinRm
-									return doRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
+									return doIPFSRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
 								},
 							},
 						},
@@ -223,7 +230,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseClusterAdd
-							return sendFiles()
+							return postFiles()
 						},
 					},
 					{
@@ -243,7 +250,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseClusterPinRm
-							return doRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
+							return doIPFSRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
 						},
 					},
 				},
@@ -267,7 +274,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseIpfsStat
-							return doRequests(http.MethodPost, "/api/v0/repo/stat/", genHttpParamsEmpty)
+							return doIPFSRequests(http.MethodPost, "/api/v0/repo/stat/", genHttpParamsEmpty)
 						},
 					},
 				},

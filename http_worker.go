@@ -67,7 +67,7 @@ func doHttpRequest(req *http.Request) (startTime, endTime time.Time, currentConc
 	return
 }
 
-func doRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr string) {
+func doIPFSRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr string) {
 	r := Result{
 		Gid: gid,
 		Fid: fid2cid.Fid,
@@ -96,7 +96,7 @@ func doRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr strin
 	chResults <- r
 }
 
-func doRequests(method, path string, pf func() string) error {
+func doIPFSRequests(method, path string, pf func() string) error {
 	baseUrl := "http://" + input.HostPort + path
 
 	var prsWg sync.WaitGroup
@@ -117,7 +117,7 @@ func doRequests(method, path string, pf func() string) error {
 					return
 				}
 
-				doRequest(gid, method, baseUrl, cid, paramsStr)
+				doIPFSRequest(gid, method, baseUrl, cid, paramsStr)
 			}
 		}(i)
 	}
@@ -212,8 +212,8 @@ func postFile(tid int, fid int) {
 	chResults <- r
 }
 
-func sendFiles() error {
-	logger.Info("sendFiles",
+func postFiles() error {
+	logger.Info("postFiles",
 		zap.String("FilesDir", params.FilesDir),
 		zap.Int("From", input.From),
 		zap.Int("To", input.To),
