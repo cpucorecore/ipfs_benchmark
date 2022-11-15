@@ -61,10 +61,11 @@ func processResults(in <-chan Result) ResultsSummary {
 		cnt++
 		if cnt%100 == 0 {
 			errsInfo, _ := json.Marshal(rs.ErrCounter)
-			logger.Info(fmt.Sprintf("progress:%d/%d %g%%, errs:%d, ErrCounter:%s",
+			logger.Info(fmt.Sprintf("progress:%d/%d %g%%, concurrency:%d, errs:%d, ErrCounter:%s",
 				cnt,
 				input.To-input.From,
 				float32(cnt*100)/float32(input.To-input.From),
+				r.Concurrency,
 				rs.Errs,
 				string(errsInfo)))
 		}
