@@ -28,43 +28,47 @@ var transport = &http.Transport{
 		Timeout:   300 * time.Second,
 		KeepAlive: 1200 * time.Second,
 	}).DialContext,
-	MaxIdleConns:          1000,
+	MaxIdleConns:          2000,
 	IdleConnTimeout:       600 * time.Second,
 	ExpectContinueTimeout: 600 * time.Second,
-	MaxIdleConnsPerHost:   1000,
+	MaxIdleConnsPerHost:   2000,
 }
 
 var httpClient = &http.Client{Transport: transport}
 var concurrency int32
 
-func doHttpRequest(req *http.Request) (startTime, endTime time.Time, currentConcurrency int32, e error, body string) {
+func doHttpRequest(req *http.Request) (time.Time, time.Time, int32, error, string) {
+	currentConcurrency := int32(input.Goroutines)
 	if params.Sync {
 		atomic.AddInt32(&concurrency, 1)
 		currentConcurrency = concurrency
-	} else {
-		currentConcurrency = int32(input.Goroutines)
 	}
 
-	startTime = time.Now()
+	startTime := time.Now()
 	resp, e := httpClient.Do(req)
-	endTime = time.Now()
+	endTime := time.Now()
 
 	if params.Sync {
 		atomic.AddInt32(&concurrency, -1)
 	}
 
 	if e != nil {
-		return
+		if params.Verbose {
+			logger.Info("httpClient do err", zap.String("err", e.Error()))
+		}
+		return startTime, endTime, currentConcurrency, e, ""
 	}
 
-	defer resp.Body.Close()
 	respBody, e := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	if e != nil {
-		return
+		if params.Verbose {
+			logger.Error("ioutil ReadAll err", zap.String("err", e.Error()))
+		}
+		return startTime, endTime, currentConcurrency, e, string(respBody)
 	}
-	body = string(respBody)
 
-	return
+	return startTime, endTime, currentConcurrency, nil, string(respBody)
 }
 
 func doIPFSRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr string) {
@@ -85,6 +89,7 @@ func doIPFSRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr s
 	r.Latency = r.E.Sub(r.S).Microseconds()
 	if r.Err != nil {
 		r.Ret = -6
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -96,6 +101,116 @@ func doIPFSRequest(gid int, method, baseUrl string, fid2cid Fid2Cid, paramsStr s
 	chResults <- r
 }
 
+func doRequestRepeat(method, path string, pf func(string) string, repeat int) error {
+	url := "http://" + input.HostPort + path + pf("")
+	if params.Verbose {
+		logger.Debug(url)
+	}
+
+	var countResultsWg sync.WaitGroup
+	countResultsWg.Add(1)
+	go countResults(&countResultsWg)
+
+	var wg sync.WaitGroup
+	wg.Add(input.Goroutines)
+	for i := 0; i < input.Goroutines; i++ {
+		go func(gid int) {
+			defer wg.Done()
+
+			req, _ := http.NewRequest(method, url, nil)
+
+			c := 0
+			for c < repeat {
+				c++
+				r := Result{Gid: gid}
+
+				r.S, r.E, r.Concurrency, r.Err, r.Resp = doHttpRequest(req)
+				r.Latency = r.E.Sub(r.S).Microseconds()
+
+				if params.Verbose {
+					logger.Debug("http response", zap.String("body", r.Resp))
+				}
+
+				if r.Err != nil {
+					r.Ret = -1
+					r.ErrMsg = r.Err.Error()
+					chResults <- r
+					continue
+				}
+
+				chResults <- r
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(chResults)
+
+	countResultsWg.Wait()
+	return nil
+}
+
+func doRequestIter(method, path string, pf func(cid string) string) error {
+	baseUrl := "http://" + input.HostPort + path
+
+	var countResultsWg sync.WaitGroup
+	countResultsWg.Add(1)
+	go countResults(&countResultsWg)
+
+	var wg sync.WaitGroup
+	wg.Add(input.Goroutines)
+	for i := 0; i < input.Goroutines; i++ {
+		go func(gid int) {
+			defer wg.Done()
+
+			for {
+				it, ok := <-chFid2Cids
+				if !ok {
+					break
+				}
+
+				url := baseUrl
+				if pf == nil {
+					url += "/" + it.Cid
+				} else {
+					url += pf(it.Cid)
+
+				}
+
+				if params.Verbose {
+					logger.Debug(url)
+				}
+
+				req, _ := http.NewRequest(method, url, nil)
+
+				r := Result{Gid: gid}
+
+				r.S, r.E, r.Concurrency, r.Err, r.Resp = doHttpRequest(req)
+				r.Latency = r.E.Sub(r.S).Microseconds()
+
+				if params.Verbose {
+					logger.Debug("http response", zap.String("body", r.Resp))
+				}
+
+				if r.Err != nil {
+					r.Ret = -1
+					r.ErrMsg = r.Err.Error()
+					chResults <- r
+					continue
+				}
+
+				chResults <- r
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(chResults)
+
+	countResultsWg.Wait()
+	return nil
+}
+
 func doIPFSRequests(method, path string, pf func() string) error {
 	baseUrl := "http://" + input.HostPort + path
 
@@ -105,9 +220,8 @@ func doIPFSRequests(method, path string, pf func() string) error {
 
 	paramsStr := pf()
 	var wg sync.WaitGroup
+	wg.Add(input.Goroutines)
 	for i := 0; i < input.Goroutines; i++ {
-		wg.Add(1)
-
 		go func(gid int) {
 			defer wg.Done()
 
@@ -146,6 +260,7 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -1
 		r.Err = e
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -155,6 +270,7 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -2
 		r.Err = e
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -165,6 +281,7 @@ func postFile(tid int, fid int) {
 		logger.Error("read file err", zap.String("err", e.Error()), zap.Int64("read bytes", n))
 		r.Ret = -3
 		r.Err = e
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -173,6 +290,7 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -4
 		r.Err = e
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -181,6 +299,7 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -5
 		r.Err = e
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -192,6 +311,7 @@ func postFile(tid int, fid int) {
 	if r.Err != nil {
 		logger.Error("doHttpRequest err", zap.String("err", r.Err.Error()))
 		r.Ret = -6
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -204,6 +324,7 @@ func postFile(tid int, fid int) {
 	if e != nil {
 		r.Ret = -7
 		r.Err = e
+		r.ErrMsg = r.Err.Error()
 		chResults <- r
 		return
 	}
@@ -227,7 +348,7 @@ func postFiles() error {
 	prsWg.Add(1)
 	go countResults(&prsWg)
 
-	urlAdd = "http://" + input.HostPort + "/add" + genHttpParamsClusterAdd()
+	urlAdd = "http://" + input.HostPort + "/add" + clusterAdd("")
 	if params.Verbose {
 		logger.Debug(urlAdd)
 	}
@@ -241,9 +362,8 @@ func postFiles() error {
 	}()
 
 	var wg sync.WaitGroup
+	wg.Add(input.Goroutines)
 	for i := 0; i < input.Goroutines; i++ {
-		wg.Add(1)
-
 		go func(gid int) {
 			defer wg.Done()
 

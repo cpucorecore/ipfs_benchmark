@@ -38,9 +38,8 @@ func genFiles() error {
 	go countResults(&prsWg)
 
 	var wg sync.WaitGroup
+	wg.Add(input.Goroutines)
 	for i := 0; i < input.Goroutines; i++ {
-		wg.Add(1)
-
 		go func(gid int) {
 			defer wg.Done()
 
@@ -70,6 +69,7 @@ func genFiles() error {
 
 					r.Ret = -1
 					r.Err = e
+					r.ErrMsg = r.Err.Error()
 					chResults <- r
 
 					continue
@@ -86,6 +86,7 @@ func genFiles() error {
 
 						r.Ret = -2
 						r.Err = e
+						r.ErrMsg = r.Err.Error()
 						chResults <- r
 
 						break
@@ -97,6 +98,7 @@ func genFiles() error {
 
 						r.Ret = -3
 						r.Err = e
+						r.ErrMsg = r.Err.Error()
 						chResults <- r
 
 						break

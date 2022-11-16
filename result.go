@@ -14,11 +14,13 @@ type Result struct {
 	Latency     int64
 	Concurrency int32
 	Err         error  `json:"-"`
+	ErrMsg      string `json:"-"`
 	Resp        string `json:"-"`
 }
 
 type ErrResult struct {
-	R    Result
-	Err  error
-	Resp string
+	R      Result
+	Err    error
+	ErrMsg string
+	Resp   string
 }

@@ -6,8 +6,11 @@ import (
 )
 
 type Input struct {
-	TestCase       string
 	Tag            string
+	TestCase       string
+	ApiPath        string
+	HttpMethod     string
+	Repeat         uint
 	Goroutines     int
 	From           int
 	To             int

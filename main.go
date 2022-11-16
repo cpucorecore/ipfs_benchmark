@@ -28,7 +28,7 @@ var (
 	input  Input
 
 	chFid2Cids = make(chan Fid2Cid, 20000)
-	chResults  = make(chan Result, 20000)
+	chResults  = make(chan Result, 30000)
 
 	logger *zap.Logger
 )
@@ -63,7 +63,7 @@ func main() {
 			&cli.IntFlag{
 				Name:        "to",
 				Usage:       "[from, to)",
-				Value:       100,
+				Value:       1000,
 				Destination: &input.To,
 			},
 			&cli.BoolFlag{
@@ -160,7 +160,7 @@ func main() {
 								Name: "get",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinGet
-									return doIPFSRequests(http.MethodGet, "/pins/", genHttpParamsEmpty)
+									return doIPFSRequests(http.MethodGet, "/pins/", empty)
 								},
 							},
 							{
@@ -181,14 +181,14 @@ func main() {
 								},
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinAdd
-									return doIPFSRequests(http.MethodPost, "/pins/ipfs/", genHttpParamsClusterPinAdd)
+									return doRequestIter(http.MethodPost, "/pins/ipfs/", clusterPinAdd)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinRm
-									return doIPFSRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
+									return doRequestIter(http.MethodDelete, "/pins/ipfs/", nil)
 								},
 							},
 						},
@@ -250,7 +250,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseClusterPinRm
-							return doIPFSRequests(http.MethodDelete, "/pins/ipfs/", genHttpParamsEmpty)
+							return doIPFSRequests(http.MethodDelete, "/pins/ipfs/", empty)
 						},
 					},
 				},
@@ -259,22 +259,70 @@ func main() {
 				Name: "ipfs",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "test_result_file",
-						Usage:       "the file To save test result",
-						Destination: &params.TestResultFile,
-						Aliases:     []string{"trf"},
+						Name:        "test_case",
+						Usage:       "test case name",
+						Destination: &input.TestCase,
+						Aliases:     []string{"tc"},
+						Required:    true,
+					},
+					&cli.StringFlag{
+						Name:        "api_path",
+						Usage:       "api path, eg: [/api/v0/swarm/peers, /api/v0/id]",
+						Destination: &input.ApiPath,
+						Aliases:     []string{"ap"},
+						Required:    true,
+					},
+					&cli.StringFlag{
+						Name:        "http_method",
+						Usage:       "http method: [GET/POST/DELETE]",
+						Destination: &input.HttpMethod,
+						Value:       "POST",
+						Aliases:     []string{"hm"},
 						Required:    true,
 					},
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name: "stat",
+						Name: "repeat_request",
+						Flags: []cli.Flag{
+							&cli.UintFlag{
+								Name:        "repeat",
+								Usage:       "repeat per goroutine",
+								Destination: &input.Repeat,
+								Value:       100,
+								Aliases:     []string{"r"},
+								Required:    true,
+							},
+						},
+						Action: func(context *cli.Context) error {
+							return doRequestRepeat(
+								input.HttpMethod,
+								input.ApiPath,
+								getParamsFunc(input.ApiPath),
+								int(input.Repeat),
+							)
+						},
+					},
+					{
+						Name: "iter_request",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:        "test_result_file",
+								Usage:       "the file To save test result",
+								Destination: &params.TestResultFile,
+								Aliases:     []string{"trf"},
+								Required:    true,
+							},
+						},
 						Before: func(context *cli.Context) error {
 							return loadTestCids()
 						},
 						Action: func(context *cli.Context) error {
-							input.TestCase = TestCaseIpfsStat
-							return doIPFSRequests(http.MethodPost, "/api/v0/repo/stat/", genHttpParamsEmpty)
+							return doRequestIter(
+								input.HttpMethod,
+								input.ApiPath,
+								getParamsFunc(input.ApiPath),
+							)
 						},
 					},
 				},
