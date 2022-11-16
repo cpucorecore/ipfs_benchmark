@@ -9,7 +9,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-func CompareTests(tag string, sortTps, sortLatency, timestamp bool, files ...string) error {
+func CompareTests(tag string, sortTps, sortLatency, timestamp bool, testFiles ...string) error {
 	title := fmt.Sprintf("compare_st-%v_sl-%v", sortTps, sortLatency)
 	if len(tag) > 0 {
 		title += fmt.Sprintf("_%s", tag)
@@ -18,13 +18,13 @@ func CompareTests(tag string, sortTps, sortLatency, timestamp bool, files ...str
 		title += fmt.Sprintf("_%d", time.Now().Unix())
 	}
 
-	linesTps := make([]Line, len(files))
-	linesLatency := make([]Line, len(files))
+	linesTps := make([]Line, len(testFiles))
+	linesLatency := make([]Line, len(testFiles))
 
-	for i, file := range files {
-		rs, e := countResultsFile(file, sortLatency, sortTps)
+	for i, testFile := range testFiles {
+		rs, e := countResultsFile(testFile, sortLatency, sortTps)
 		if e != nil {
-			logger.Error("countResultsFile err", zap.String("file", file), zap.String("err", e.Error()))
+			logger.Error("countResultsFile err", zap.String("testFile", testFile), zap.String("err", e.Error()))
 			return e
 		}
 
@@ -32,13 +32,13 @@ func CompareTests(tag string, sortTps, sortLatency, timestamp bool, files ...str
 		for j, v := range rs.TPSes {
 			xysTPS = append(xysTPS, plotter.XY{X: float64(j + 1), Y: v})
 		}
-		linesTps[i] = Line{name: file, xys: xysTPS}
+		linesTps[i] = Line{name: testFile, xys: xysTPS}
 
 		xysLatency := make(plotter.XYs, 0, len(rs.LatencySummary.Latencies))
 		for j, v := range rs.LatencySummary.Latencies {
 			xysLatency = append(xysLatency, plotter.XY{X: float64(j + 1), Y: v})
 		}
-		linesLatency[i] = Line{name: file, xys: xysLatency}
+		linesLatency[i] = Line{name: testFile, xys: xysLatency}
 	}
 
 	e := DrawLines(title, XLabel, TpsYLabel, filepath.Join(CompareTpsDir, title+PngSuffix), linesTps)

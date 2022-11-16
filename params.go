@@ -6,4 +6,5 @@ type Params struct {
 	TestResultFile string
 	FilesDir       string
 	FileSize       int
+	Drop           bool
 }

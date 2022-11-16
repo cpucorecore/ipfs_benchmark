@@ -153,14 +153,14 @@ func main() {
 							},
 						},
 						Before: func(context *cli.Context) error {
-							return loadTestCids()
+							return loadFid2CidsFromTestFile()
 						},
 						Subcommands: []*cli.Command{
 							{
 								Name: "get",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinGet
-									return doIPFSRequests(http.MethodGet, "/pins/", empty)
+									return doHttpRequests(http.MethodGet, "/pins", true)
 								},
 							},
 							{
@@ -181,14 +181,14 @@ func main() {
 								},
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinAdd
-									return doRequestIter(http.MethodPost, "/pins/ipfs/", clusterPinAdd)
+									return doHttpRequests(http.MethodPost, "/pins/ipfs", true)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
 									input.TestCase = TestCaseClusterPinRm
-									return doRequestIter(http.MethodDelete, "/pins/ipfs/", nil)
+									return doHttpRequests(http.MethodDelete, "/pins/ipfs", true)
 								},
 							},
 						},
@@ -250,7 +250,7 @@ func main() {
 						},
 						Action: func(context *cli.Context) error {
 							input.TestCase = TestCaseClusterPinRm
-							return doIPFSRequests(http.MethodDelete, "/pins/ipfs/", empty)
+							return doHttpRequests(http.MethodDelete, "/pins/ipfs", true)
 						},
 					},
 				},
@@ -295,12 +295,7 @@ func main() {
 							},
 						},
 						Action: func(context *cli.Context) error {
-							return doRequestRepeat(
-								input.HttpMethod,
-								input.ApiPath,
-								getParamsFunc(input.ApiPath),
-								int(input.Repeat),
-							)
+							return doRequestsRepeat(input.HttpMethod, input.ApiPath, int(input.Repeat))
 						},
 					},
 					{
@@ -313,15 +308,22 @@ func main() {
 								Aliases:     []string{"trf"},
 								Required:    true,
 							},
+							&cli.BoolFlag{
+								Name:        "drop",
+								Usage:       "drop http response, for /api/v0/cat api",
+								Destination: &params.Drop,
+								Value:       true,
+								Aliases:     []string{"d"},
+							},
 						},
 						Before: func(context *cli.Context) error {
-							return loadTestCids()
+							return loadFid2CidsFromTestFile()
 						},
 						Action: func(context *cli.Context) error {
-							return doRequestIter(
+							return doHttpRequests(
 								input.HttpMethod,
 								input.ApiPath,
-								getParamsFunc(input.ApiPath),
+								false,
 							)
 						},
 					},

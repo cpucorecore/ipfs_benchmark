@@ -7,12 +7,12 @@ import (
 
 const (
 	PathTests    = "tests"
-	PathReports  = "reports"
-	PathErrs     = "errs"
-	PathImages   = "images"
+	PathReports  = "report"
+	PathErrs     = "err"
+	PathImages   = "image"
 	PathTps      = "tps"
 	PathLatency  = "latency"
-	PathCompares = "compares"
+	PathCompares = "compare"
 )
 
 var (

@@ -16,7 +16,6 @@ var (
 		ErrCounter:    nil,
 		Results: []Result{
 			{
-				Gid: 0,
 				Fid: 0,
 				Ret: 0,
 				S:   time.Time{},
@@ -24,7 +23,6 @@ var (
 				Cid: "Cid1",
 			},
 			{
-				Gid: 1,
 				Fid: 1,
 				Ret: 0,
 				S:   time.Time{},

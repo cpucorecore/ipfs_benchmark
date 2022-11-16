@@ -121,7 +121,12 @@ func loadTest(name string) (Test, error) {
 	return t, nil
 }
 
-func loadTestCids() error {
+type Fid2Cid struct {
+	Fid int
+	Cid string
+}
+
+func loadFid2CidsFromTestFile() error {
 	t, e := loadTest(params.TestResultFile)
 	if e != nil {
 		logger.Error("loadTest err", zap.String("err", e.Error()))

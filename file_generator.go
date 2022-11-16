@@ -33,14 +33,14 @@ func genFiles() error {
 		close(chFids)
 	}()
 
-	var prsWg sync.WaitGroup
-	prsWg.Add(1)
-	go countResults(&prsWg)
+	var countResultsWg sync.WaitGroup
+	countResultsWg.Add(1)
+	go countResults(&countResultsWg)
 
 	var wg sync.WaitGroup
 	wg.Add(input.Goroutines)
 	for i := 0; i < input.Goroutines; i++ {
-		go func(gid int) {
+		go func() {
 			defer wg.Done()
 
 			rf, e := os.Open(DeviceURandom)
@@ -58,7 +58,6 @@ func genFiles() error {
 				}
 
 				r := Result{
-					Gid: gid,
 					Fid: fid,
 				}
 
@@ -69,7 +68,6 @@ func genFiles() error {
 
 					r.Ret = -1
 					r.Err = e
-					r.ErrMsg = r.Err.Error()
 					chResults <- r
 
 					continue
@@ -86,7 +84,6 @@ func genFiles() error {
 
 						r.Ret = -2
 						r.Err = e
-						r.ErrMsg = r.Err.Error()
 						chResults <- r
 
 						break
@@ -98,7 +95,6 @@ func genFiles() error {
 
 						r.Ret = -3
 						r.Err = e
-						r.ErrMsg = r.Err.Error()
 						chResults <- r
 
 						break
@@ -116,12 +112,12 @@ func genFiles() error {
 					logger.Info("file generated", zap.String("file", fp))
 				}
 			}
-		}(i)
+		}()
 	}
 	wg.Wait()
 
 	close(chResults)
 
-	prsWg.Wait()
+	countResultsWg.Wait()
 	return nil
 }
