@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func doIpfsIterInput(input IpfsIterInput) error {
+func doIpfsIterInput(input IterParamsHttpInput) error {
 	baseUrl := input.baseUrl()
 
 	var countResultsWg sync.WaitGroup
@@ -31,7 +31,7 @@ func doIpfsIterInput(input IpfsIterInput) error {
 					logger.Debug("http req", zap.String("url", url))
 				}
 
-				req, _ := http.NewRequest(input.getMethod(), url, nil)
+				req, _ := http.NewRequest(input.method(), url, nil)
 
 				r := doHttpRequest(req)
 				r.Cid = fid2Cid.Cid

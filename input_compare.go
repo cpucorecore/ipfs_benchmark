@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-var _ LocalInput = CompareInput{}
+var _ IInput = CompareInput{}
 
 type CompareInput struct {
-	Timestamp   bool
 	Tag         string
+	Timestamp   bool
 	SortTps     bool
 	SortLatency bool
 }

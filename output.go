@@ -16,12 +16,12 @@ const (
 )
 
 func outputSummary(rs ResultsSummary) {
-	title := input.info()
+	name := ipt.name()
 	e := DrawValues(
-		title,
+		name,
 		XLabel,
 		LatencyYLabel,
-		filepath.Join(ImagesLatencyDir, title+PngSuffix),
+		filepath.Join(ImagesLatencyDir, name+PngSuffix),
 		rs.LatencySummary.Latencies,
 	)
 	if e != nil {
@@ -34,10 +34,10 @@ func outputSummary(rs ResultsSummary) {
 	}
 
 	e = DrawXYs(
-		title,
+		name,
 		XLabel,
 		TpsYLabel,
-		filepath.Join(ImagesTpsDir, title+PngSuffix),
+		filepath.Join(ImagesTpsDir, name+PngSuffix),
 		xyz,
 	) // TODO fix execute slowly
 	if e != nil {

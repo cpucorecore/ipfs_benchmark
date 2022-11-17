@@ -29,14 +29,10 @@ func init() {
 	}
 }
 
-var verbose bool
-
-var goroutines int
-var syncConcurrency bool
-
 var dropHttpRespBody = false
-
-var hostPort string
+var ipt ISampleInput
+var host string
+var port string
 
 func main() {
 	app := &cli.App{
@@ -62,12 +58,29 @@ func main() {
 				Destination: &syncConcurrency,
 				Aliases:     []string{"sc"},
 			},
+			&cli.StringFlag{
+				Name:        "host",
+				Value:       "127.0.0.1",
+				Destination: &host,
+			},
+			&cli.StringFlag{
+				Name:        "port",
+				Value:       "9094",
+				Destination: &port,
+				Aliases:     []string{"p"},
+			},
 		},
 		Commands: []*cli.Command{
 			{
 				Name:  "compare",
 				Usage: "compare test file",
 				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "tag", // TODO remove this flag, instead by infos from [test files...]
+						Usage:    "compare tag",
+						Aliases:  []string{"t"},
+						Required: true,
+					},
 					&cli.BoolFlag{
 						Name:    "timestamp",
 						Usage:   "add timestamp to the file name",
@@ -89,8 +102,8 @@ func main() {
 				},
 				Action: func(context *cli.Context) error {
 					input := CompareInput{
-						Timestamp:   context.Bool("timestamp"),
 						Tag:         context.String("tag"),
+						Timestamp:   context.Bool("timestamp"),
 						SortTps:     context.Bool("sort_tps"),
 						SortLatency: context.Bool("sort_latency"),
 					}
@@ -101,7 +114,7 @@ func main() {
 				Name:  "gc",
 				Usage: "cluster gc",
 				Action: func(context *cli.Context) error {
-					return gc()
+					return gc(host + ":" + port)
 				},
 			},
 			{
@@ -130,27 +143,36 @@ func main() {
 									},
 								},
 								Action: func(context *cli.Context) error {
-									input := ClusterPinAddInput{}
+									var input ClusterPinAddInput
+									input.Host = host
+									input.Port = port
 									input.Method = http.MethodPost
 									input.Path = "/pins/ipfs"
+									ipt = input
 									return doIterUrlHttpInput(input)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									input := ClusterPinInput{}
+									input := ClusterPinAddInput{}
+									input.Host = host
+									input.Port = port
 									input.Method = http.MethodDelete
 									input.Path = "/pins/ipfs"
+									ipt = input
 									return doIterUrlHttpInput(input)
 								},
 							},
 							{
 								Name: "get",
 								Action: func(context *cli.Context) error {
-									input := ClusterPinInput{}
+									input := ClusterPinAddInput{}
+									input.Host = host
+									input.Port = port
 									input.Method = http.MethodGet
 									input.Path = "/pins"
+									ipt = input
 									return doIterUrlHttpInput(input)
 								},
 							},
@@ -173,25 +195,32 @@ func main() {
 								Name:    "block_size",
 								Usage:   "block size, max value 1048576(1MB), default 262144(256KB)",
 								Value:   1024 * 256,
-								Aliases: []string{"bs"},
+								Aliases: []string{"s"},
+							},
+							&cli.IntFlag{
+								Name:    "replica",
+								Value:   2,
+								Aliases: []string{"r"},
 							},
 							&cli.BoolFlag{
 								Name:    "pin",
 								Value:   true,
 								Aliases: []string{"p"},
 							},
-							&cli.IntFlag{
-								Name:  "replica",
-								Value: 2,
-							},
 						},
 						Action: func(context *cli.Context) error {
-							input := ClusterAddInput{}
-							input.From = context.Int("from")
-							input.To = context.Int("to")
-							input.BlockSize = context.Int("block_size")
-							input.Pin = context.Bool("pin")
-							input.Replica = context.Int("replica")
+							input := ClusterAddInput{
+								From:      context.Int("from"),
+								To:        context.Int("to"),
+								BlockSize: context.Int("block_size"),
+								Replica:   context.Int("replica"),
+								Pin:       context.Bool("pin"),
+							}
+							input.Host = host
+							input.Port = port
+							input.Method = http.MethodPost
+							input.Path = "/add"
+							ipt = input
 							return postFiles(input)
 						},
 					},
@@ -210,9 +239,12 @@ func main() {
 							return loadFileCids(context.String("cids_file"))
 						},
 						Action: func(context *cli.Context) error {
-							input := ClusterPinInput{}
+							var input IterUrlHttpInput
 							input.Method = http.MethodDelete
 							input.Path = "/pins/ipfs"
+							input.Host = host
+							input.Port = port
+							ipt = input
 							return doIterUrlHttpInput(input)
 						},
 					},
@@ -246,10 +278,13 @@ func main() {
 							},
 						},
 						Action: func(context *cli.Context) error {
-							input := IpfsRepeatInput{}
+							input := ConstHttpInput{}
 							input.Method = context.String("method")
 							input.Path = context.String("path")
 							input.Repeat = context.Int("repeat")
+							input.Host = host
+							input.Port = port
+							ipt = input
 							return doRepeatHttpInput(input)
 						},
 					},
@@ -266,17 +301,20 @@ func main() {
 							return loadFid2CidsFromTestFile(context.String("test_result_file"))
 						},
 						Action: func(context *cli.Context) error {
-							input := IpfsIterInput{}
+							input := IterParamsHttpInput{}
 							input.Method = context.String("method")
 							input.Path = context.String("path")
 							input.TestFile = context.String("test_result_file")
+							input.Host = host
+							input.Port = port
+							ipt = input
 							return doIpfsIterInput(input)
 						},
 					},
 				},
 			},
 			{
-				Name: "gen_files",
+				Name: "gen_file",
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "from",
@@ -295,10 +333,11 @@ func main() {
 					},
 				},
 				Action: func(context *cli.Context) error {
-					input := GenFileInput{}
-					input.From = context.Int("from")
-					input.To = context.Int("to")
-					input.Size = context.Int("size")
+					input := GenFileInput{
+						From: context.Int("from"),
+						To:   context.Int("to"),
+						Size: context.Int("size"),
+					}
 					return genFiles(input)
 				},
 			},

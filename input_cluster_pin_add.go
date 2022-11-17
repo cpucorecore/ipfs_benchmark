@@ -5,12 +5,15 @@ import (
 	"net/url"
 )
 
-var _ IterUrlHttpInput = ClusterPinAddInput{}
+var _ IIterUrlHttpInput = ClusterPinAddInput{}
 
 type ClusterPinAddInput struct {
-	BaseHttpInput
-	ClusterPinInput
+	HttpInput
 	Replica int
+}
+
+func (i ClusterPinAddInput) iterUrl(it string) string {
+	return "/" + it
 }
 
 func (i ClusterPinAddInput) urlParams() string {

@@ -1,9 +1,10 @@
 package main
 
 import (
+	"path/filepath"
+
 	"go.uber.org/zap"
 	"gonum.org/v1/plot/plotter"
-	"path/filepath"
 )
 
 func CompareTests(input CompareInput, testFiles ...string) error {

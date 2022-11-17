@@ -25,8 +25,8 @@ func genFiles(input GenFileInput) error {
 	go countResults(&countResultsWg)
 
 	var wg sync.WaitGroup
-	wg.Add(input.Goroutines)
-	for i := 0; i < input.Goroutines; i++ {
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
 		go func() {
 			defer wg.Done()
 
@@ -61,8 +61,14 @@ func genFiles(input GenFileInput) error {
 				}
 
 				var currentSize, rn, wn int
-				atomic.AddInt32(&concurrency, 1)
-				r.Concurrency = concurrency
+
+				if syncConcurrency {
+					atomic.AddInt32(&concurrency, 1)
+					r.Concurrency = concurrency
+				} else {
+					r.Concurrency = int32(goroutines)
+				}
+
 				r.S = time.Now()
 				for currentSize < input.Size {
 					rn, e = rf.Read(buffer[:])
@@ -72,6 +78,7 @@ func genFiles(input GenFileInput) error {
 						r.Ret = -2
 						r.Err = e
 						chResults <- r
+						fd.Close()
 
 						break
 					}
@@ -83,6 +90,7 @@ func genFiles(input GenFileInput) error {
 						r.Ret = -3
 						r.Err = e
 						chResults <- r
+						fd.Close()
 
 						break
 					}
@@ -91,12 +99,16 @@ func genFiles(input GenFileInput) error {
 				}
 				fd.Close()
 				r.E = time.Now()
-				atomic.AddInt32(&concurrency, -1)
+
+				if syncConcurrency {
+					atomic.AddInt32(&concurrency, -1)
+				}
+
 				r.Latency = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r
 				if verbose {
-					logger.Info("file generated", zap.String("file", fp))
+					logger.Debug("file generated", zap.String("file", fp))
 				}
 			}
 		}()

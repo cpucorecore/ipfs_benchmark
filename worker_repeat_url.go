@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-func doRepeatHttpInput(input RepeatHttpInput) error {
+func doRepeatHttpInput(input ConstHttpInput) error {
 	url := input.baseUrl() + input.urlParams()
 	if verbose {
 		logger.Debug(url)
@@ -23,7 +23,9 @@ func doRepeatHttpInput(input RepeatHttpInput) error {
 		go func(gid int) {
 			defer wg.Done()
 
-			req, _ := http.NewRequest(input.getMethod(), url, nil)
+			logger.Info(input.method())
+			logger.Info(url)
+			req, _ := http.NewRequest(input.method(), url, nil)
 
 			c := 0
 			for c < repeat {

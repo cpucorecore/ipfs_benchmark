@@ -50,11 +50,6 @@ func saveFile(name string, bs []byte) error {
 	return nil
 }
 
-type Test struct {
-	Input          Input
-	ResultsSummary ResultsSummary
-}
-
 func saveErrResults(file string, ers []ErrResult) error {
 	bs, e := json.MarshalIndent(ers, "", "  ")
 	if e != nil {
@@ -69,8 +64,17 @@ func saveErrResults(file string, ers []ErrResult) error {
 	return nil
 }
 
+type Test struct {
+	Input          IInput
+	ResultsSummary ResultsSummary
+}
+
+type TestForLoad struct {
+	ResultsSummary ResultsSummary
+}
+
 func saveTest(rs ResultsSummary) {
-	title := input.info()
+	name := ipt.name()
 
 	var ers []ErrResult
 	for _, r := range rs.Results {
@@ -80,15 +84,14 @@ func saveTest(rs ResultsSummary) {
 	}
 
 	if len(ers) > 0 {
-		e := saveErrResults(filepath.Join(ErrsDir, title+JsonSuffix), ers)
+		e := saveErrResults(filepath.Join(ErrsDir, name+JsonSuffix), ers)
 		if e != nil {
 			logger.Error("saveErrResults err", zap.String("err", e.Error()))
 		}
 	}
 
 	t := Test{
-		Params:         params,
-		Input:          input,
+		Input:          ipt,
 		ResultsSummary: rs,
 	}
 
@@ -98,14 +101,14 @@ func saveTest(rs ResultsSummary) {
 		return
 	}
 
-	e = saveFile(filepath.Join(ReportsDir, title+JsonSuffix), bs)
+	e = saveFile(filepath.Join(ReportsDir, name+JsonSuffix), bs)
 	if e != nil {
 		logger.Error("saveFile err", zap.String("err", e.Error()))
 	}
 }
 
-func loadTest(name string) (Test, error) {
-	var t Test
+func loadTest(name string) (TestForLoad, error) {
+	var t TestForLoad
 
 	bs, e := loadFile(name)
 	if e != nil {
@@ -132,12 +135,13 @@ func loadFid2CidsFromTestFile(testFile string) error {
 		return e
 	}
 
-	if input.To > len(t.ResultsSummary.Results) {
-		input.To = len(t.ResultsSummary.Results)
-	}
+	//if input.To > len(t.ResultsSummary.Results) {
+	//	input.To = len(t.ResultsSummary.Results)
+	//}
 
 	go func() {
-		for _, r := range t.ResultsSummary.Results[input.From:input.To] {
+		//for _, r := range t.ResultsSummary.Results[input.From:input.To] {
+		for _, r := range t.ResultsSummary.Results {
 			if r.Cid != "" {
 				chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
 			}

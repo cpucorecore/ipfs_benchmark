@@ -2,10 +2,9 @@ package main
 
 import "fmt"
 
-var _ LocalInput = GenFileInput{}
+var _ IInput = GenFileInput{}
 
 type GenFileInput struct {
-	BaseInput
 	From int
 	To   int
 	Size int
@@ -16,9 +15,9 @@ func (i GenFileInput) name() string {
 }
 
 func (i GenFileInput) check() bool {
-	return i.BaseInput.check() && fromToCheck(i.From, i.To)
+	return fromToCheck(i.From, i.To)
 }
 
 func (i GenFileInput) paramsStr() string {
-	return fmt.Sprintf("%s_%s_size-%d", i.BaseInput.paramsStr(), fromToParamsStr(i.From, i.To), i.Size)
+	return fmt.Sprintf("%s_%s_size-%d", baseParamsStr(), fromToParamsStr(i.From, i.To), i.Size)
 }

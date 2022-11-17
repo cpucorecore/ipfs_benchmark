@@ -1,28 +1,25 @@
 package main
 
 import (
-	"io/ioutil"
-
 	"go.uber.org/zap"
+	"io/ioutil"
 )
 
-func gc() error {
-	url := "http://" + hostPort + "/ipfs/gc?local=false"
+func gc(hostPort string) error {
+	url := HTTP + hostPort + "/ipfs/gc?local=false"
 	resp, e := httpClient.Post(url, "", nil)
 	if e != nil {
 		logger.Error("httpClient post err", zap.String("err", e.Error()))
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
-		}
 		return e
 	}
 
 	_, e = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	if e != nil {
-		logger.Error("read response body err", zap.String("err", e.Error()))
-		resp.Body.Close()
+		logger.Error("ioutil ReadAll err", zap.String("err", e.Error()))
 		return e
 	}
 
+	logger.Info("gc finished")
 	return nil
 }

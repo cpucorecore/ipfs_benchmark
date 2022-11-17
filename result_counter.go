@@ -51,10 +51,12 @@ func processResults(in <-chan Result) ResultsSummary {
 
 	latencies := make(plotter.Values, 0, 10000)
 
-	samples := input.To - input.From
-	if input.Repeat > 0 {
-		samples = input.Goroutines * int(input.Repeat)
-	}
+	//samples := input.To - input.From
+	//if input.Repeat > 0 {
+	//	samples = input.Goroutines * int(input.Repeat)
+	//}
+
+	samples := 1 // TODO
 
 	cnt := 0
 	for {
@@ -95,7 +97,7 @@ func processResults(in <-chan Result) ResultsSummary {
 			latencies = append(latencies, float64(r.Latency))
 		}
 
-		if params.Verbose {
+		if verbose {
 			if r.Ret != 0 {
 			} else {
 				logger.Debug(

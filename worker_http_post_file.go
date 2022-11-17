@@ -80,8 +80,8 @@ func postFiles(input ClusterAddInput) error {
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(input.Goroutines)
-	for i := 0; i < input.Goroutines; i++ {
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
 		go func() {
 			defer wg.Done()
 
