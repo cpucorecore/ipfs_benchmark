@@ -11,20 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func genFiles() error {
-	logger.Info("genFiles",
-		zap.String("FilesDir", params.FilesDir),
-		zap.Int("From", input.From),
-		zap.Int("To", input.To),
-		zap.Int("FileSize", params.FileSize),
-	)
-
-	e := os.MkdirAll(params.FilesDir, os.ModePerm)
-	if e != nil {
-		logger.Error("MkdirAll err", zap.String("dir", params.FilesDir), zap.String("err", e.Error()))
-		return e
-	}
-
+func genFiles(input GenFileInput) error {
 	chFids := make(chan int, 10000)
 	go func() {
 		for i := input.From; i < input.To; i++ {
@@ -61,7 +48,7 @@ func genFiles() error {
 					Fid: fid,
 				}
 
-				fp := path.Join(params.FilesDir, fmt.Sprintf("%d", fid))
+				fp := path.Join(PathFiles, fmt.Sprintf("%d", fid))
 				fd, e := os.Create(fp)
 				if e != nil {
 					logger.Error("create file err", zap.String("file", fp), zap.String("err", e.Error()))
@@ -77,7 +64,7 @@ func genFiles() error {
 				atomic.AddInt32(&concurrency, 1)
 				r.Concurrency = concurrency
 				r.S = time.Now()
-				for currentSize < params.FileSize {
+				for currentSize < input.Size {
 					rn, e = rf.Read(buffer[:])
 					if e != nil {
 						logger.Error("read file err", zap.String("err", e.Error()))
@@ -108,7 +95,7 @@ func genFiles() error {
 				r.Latency = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r
-				if params.Verbose {
+				if verbose {
 					logger.Info("file generated", zap.String("file", fp))
 				}
 			}

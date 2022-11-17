@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	PathFiles    = "files"
 	PathTests    = "tests"
 	PathReports  = "report"
 	PathErrs     = "err"
@@ -29,7 +30,12 @@ var (
 func initDirs() int {
 	ec := 0
 
-	e := os.MkdirAll(ReportsDir, os.ModePerm)
+	e := os.MkdirAll(PathFiles, os.ModePerm)
+	if e != nil {
+		ec++
+	}
+
+	e = os.MkdirAll(ReportsDir, os.ModePerm)
 	if e != nil {
 		ec++
 	}

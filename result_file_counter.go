@@ -4,7 +4,7 @@ import (
 	"sort"
 )
 
-func countResultsFile(file string, sortLatency, sortTps bool) (rs ResultsSummary, e error) {
+func countResultsFile(file string, sortTps, sortLatency bool) (rs ResultsSummary, e error) {
 	t, e := loadTest(file)
 	if e != nil {
 		return rs, e

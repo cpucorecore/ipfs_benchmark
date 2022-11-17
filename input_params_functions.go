@@ -2,7 +2,7 @@ package main
 
 import "net/url"
 
-var paramsFunctionsIterative = map[string]func(string) string{
+var iterative = map[string]func(string) string{
 	"/api/v0/dag/stat":          dagStatParams,
 	"/api/v0/dht/findprovs":     routingFindprovsParams, // deprecated in new version in ipfs
 	"/api/v0/routing/findprovs": routingFindprovsParams,
@@ -34,4 +34,12 @@ func catParams(cid string) string {
 	}
 
 	return "?" + values.Encode()
+}
+
+var repetitive = map[string]func() string{
+	"/api/v0/swarm/peers": swarmPeersParams,
+}
+
+func swarmPeersParams() string {
+	return "?verbose=true&streams=false&latency=true&direction=true"
 }

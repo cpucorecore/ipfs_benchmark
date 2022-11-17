@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -29,18 +31,18 @@ var httpClient = &http.Client{Transport: transport}
 func doHttpRequest(req *http.Request) Result {
 	var r Result
 
-	if params.Sync {
+	if syncConcurrency {
 		atomic.AddInt32(&concurrency, 1)
 		r.Concurrency = concurrency
 	} else {
-		r.Concurrency = int32(input.Goroutines)
+		r.Concurrency = int32(goroutines)
 	}
 	r.S = time.Now()
 
 	resp, e := httpClient.Do(req)
 
 	r.E = time.Now()
-	if params.Sync {
+	if syncConcurrency {
 		atomic.AddInt32(&concurrency, -1)
 	}
 
@@ -59,8 +61,11 @@ func doHttpRequest(req *http.Request) Result {
 		r.Ret = ErrIoutilReadAllFailed
 		return r
 	}
-	if !params.Drop {
+	if !dropHttpRespBody {
 		r.Resp = string(body)
+		if verbose {
+			logger.Debug("http response", zap.String("body", r.Resp))
+		}
 	}
 
 	return r

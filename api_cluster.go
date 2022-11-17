@@ -7,25 +7,21 @@ import (
 )
 
 func gc() error {
-	url := "http://" + input.HostPort + "/ipfs/gc?local=false"
-	resp, err := httpClient.Post(url, "", nil)
-	if err != nil {
-		logger.Error("httpClient post err", zap.String("err", err.Error()))
+	url := "http://" + hostPort + "/ipfs/gc?local=false"
+	resp, e := httpClient.Post(url, "", nil)
+	if e != nil {
+		logger.Error("httpClient post err", zap.String("err", e.Error()))
 		if resp != nil && resp.Body != nil {
 			resp.Body.Close()
 		}
-		return err
+		return e
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error("read response body err", zap.String("err", err.Error()))
+	_, e = ioutil.ReadAll(resp.Body)
+	if e != nil {
+		logger.Error("read response body err", zap.String("err", e.Error()))
 		resp.Body.Close()
-		return err
-	}
-
-	if params.Verbose {
-		logger.Info(string(respBody))
+		return e
 	}
 
 	return nil

@@ -51,7 +51,6 @@ func saveFile(name string, bs []byte) error {
 }
 
 type Test struct {
-	Params         Params
 	Input          Input
 	ResultsSummary ResultsSummary
 }
@@ -126,8 +125,8 @@ type Fid2Cid struct {
 	Cid string
 }
 
-func loadFid2CidsFromTestFile() error {
-	t, e := loadTest(params.TestResultFile)
+func loadFid2CidsFromTestFile(testFile string) error {
+	t, e := loadTest(testFile)
 	if e != nil {
 		logger.Error("loadTest err", zap.String("err", e.Error()))
 		return e

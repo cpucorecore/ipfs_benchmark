@@ -12,21 +12,7 @@ const (
 	DeviceURandom = "/dev/urandom"
 )
 
-const (
-	TestCaseGenFile = "GenFile"
-
-	TestCaseIpfsStat = "IpfsStat"
-
-	TestCaseClusterAdd    = "ClusterAdd"
-	TestCaseClusterPinGet = "ClusterPinGet"
-	TestCaseClusterPinAdd = "ClusterPinAdd"
-	TestCaseClusterPinRm  = "ClusterPinRm"
-)
-
 var (
-	params Params
-	input  Input
-
 	chFid2Cids = make(chan Fid2Cid, 20000)
 	chResults  = make(chan Result, 30000)
 
@@ -43,65 +29,44 @@ func init() {
 	}
 }
 
+var verbose bool
+
+var goroutines int
+var syncConcurrency bool
+
+var dropHttpRespBody = false
+
+var hostPort string
+
 func main() {
 	app := &cli.App{
 		Name: "ipfs_benchmark",
 		Flags: []cli.Flag{
-			&cli.IntFlag{
-				Name:        "goroutines",
-				Usage:       "goroutine number",
-				Value:       1,
-				Destination: &input.Goroutines,
-				Aliases:     []string{"g"},
-			},
-			&cli.IntFlag{
-				Name:        "from",
-				Usage:       "[from, to)",
-				Value:       0,
-				Destination: &input.From,
-			},
-			&cli.IntFlag{
-				Name:        "to",
-				Usage:       "[from, to)",
-				Value:       1000,
-				Destination: &input.To,
-			},
 			&cli.BoolFlag{
 				Name:        "verbose",
 				Usage:       "Verbose log",
 				Value:       false,
-				Destination: &params.Verbose,
+				Destination: &verbose,
 				Aliases:     []string{"v"},
 			},
+			&cli.IntFlag{
+				Name:        "goroutines",
+				Usage:       "goroutine number",
+				Value:       1,
+				Destination: &goroutines,
+				Aliases:     []string{"g"},
+			},
 			&cli.BoolFlag{
-				Name:        "sync",
-				Usage:       "sync concurrent request number",
+				Name:        "sync_concurrency",
 				Value:       false,
-				Destination: &params.Sync,
-				Aliases:     []string{"s"},
+				Destination: &syncConcurrency,
+				Aliases:     []string{"sc"},
 			},
-			&cli.StringFlag{
-				Name:        "host_port",
-				Usage:       "api host and port",
-				Value:       "192.168.0.85:9094",
-				Destination: &input.HostPort,
-				Aliases:     []string{"hp"},
-			},
-			&cli.StringFlag{
-				Name:        "tag",
-				Usage:       "add tag for test case, eg crdt, raft",
-				Value:       "",
-				Destination: &input.Tag,
-				Aliases:     []string{"t"},
-			},
-		},
-		Before: func(context *cli.Context) error {
-			return input.check()
 		},
 		Commands: []*cli.Command{
 			{
 				Name:  "compare",
-				Usage: "compare test result",
+				Usage: "compare test file",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "timestamp",
@@ -123,12 +88,13 @@ func main() {
 					},
 				},
 				Action: func(context *cli.Context) error {
-					return CompareTests(
-						context.String("tag"),
-						context.Bool("sort_tps"),
-						context.Bool("sort_latency"),
-						context.Bool("timestamp"),
-						context.Args().Slice()...)
+					input := CompareInput{
+						Timestamp:   context.Bool("timestamp"),
+						Tag:         context.String("tag"),
+						SortTps:     context.Bool("sort_tps"),
+						SortLatency: context.Bool("sort_latency"),
+					}
+					return CompareTests(input, context.Args().Slice()...)
 				},
 			},
 			{
@@ -145,50 +111,47 @@ func main() {
 						Name: "pin",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:        "test_result_file",
-								Usage:       "the file To save test result",
-								Destination: &params.TestResultFile,
-								Aliases:     []string{"trf"},
-								Required:    true,
+								Name:     "test_result_file",
+								Usage:    "the file To save test result",
+								Aliases:  []string{"trf"},
+								Required: true,
 							},
 						},
 						Before: func(context *cli.Context) error {
-							return loadFid2CidsFromTestFile()
+							return loadFid2CidsFromTestFile(context.String("test_result_file"))
 						},
 						Subcommands: []*cli.Command{
-							{
-								Name: "get",
-								Action: func(context *cli.Context) error {
-									input.TestCase = TestCaseClusterPinGet
-									return doHttpRequests(http.MethodGet, "/pins", true)
-								},
-							},
 							{
 								Name: "add",
 								Flags: []cli.Flag{
 									&cli.IntFlag{
-										Name:        "replication_min",
-										Value:       2,
-										Destination: &input.ReplicationMin,
-										Aliases:     []string{"rmin"},
-									},
-									&cli.IntFlag{
-										Name:        "replication_max",
-										Value:       2,
-										Destination: &input.ReplicationMax,
-										Aliases:     []string{"rmax"},
+										Name:  "replica",
+										Value: 2,
 									},
 								},
 								Action: func(context *cli.Context) error {
-									input.TestCase = TestCaseClusterPinAdd
-									return doHttpRequests(http.MethodPost, "/pins/ipfs", true)
+									input := ClusterPinAddInput{}
+									input.Method = http.MethodPost
+									input.Path = "/pins/ipfs"
+									return doIterUrlHttpInput(input)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									input.TestCase = TestCaseClusterPinRm
-									return doHttpRequests(http.MethodDelete, "/pins/ipfs", true)
+									input := ClusterPinInput{}
+									input.Method = http.MethodDelete
+									input.Path = "/pins/ipfs"
+									return doIterUrlHttpInput(input)
+								},
+							},
+							{
+								Name: "get",
+								Action: func(context *cli.Context) error {
+									input := ClusterPinInput{}
+									input.Method = http.MethodGet
+									input.Path = "/pins"
+									return doIterUrlHttpInput(input)
 								},
 							},
 						},
@@ -196,41 +159,40 @@ func main() {
 					{
 						Name: "add",
 						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:        "files_dir",
-								Value:       "files",
-								Destination: &params.FilesDir,
-								Aliases:     []string{"d"},
+							&cli.IntFlag{
+								Name:    "from",
+								Value:   0,
+								Aliases: []string{"f"},
 							},
 							&cli.IntFlag{
-								Name:        "block_size",
-								Usage:       "block size, max value 1048576(1MB), default 262144(256KB)",
-								Destination: &input.BlockSize,
-								Value:       1024 * 256,
-								Aliases:     []string{"bs"},
+								Name:    "to",
+								Value:   10,
+								Aliases: []string{"t"},
+							},
+							&cli.IntFlag{
+								Name:    "block_size",
+								Usage:   "block size, max value 1048576(1MB), default 262144(256KB)",
+								Value:   1024 * 256,
+								Aliases: []string{"bs"},
 							},
 							&cli.BoolFlag{
-								Name:        "pin",
-								Value:       true,
-								Destination: &input.Pin,
-								Aliases:     []string{"p"},
+								Name:    "pin",
+								Value:   true,
+								Aliases: []string{"p"},
 							},
 							&cli.IntFlag{
-								Name:        "replication_min",
-								Value:       2,
-								Destination: &input.ReplicationMin,
-								Aliases:     []string{"rmin"},
-							},
-							&cli.IntFlag{
-								Name:        "replication_max",
-								Value:       2,
-								Destination: &input.ReplicationMax,
-								Aliases:     []string{"rmax"},
+								Name:  "replica",
+								Value: 2,
 							},
 						},
 						Action: func(context *cli.Context) error {
-							input.TestCase = TestCaseClusterAdd
-							return postFiles()
+							input := ClusterAddInput{}
+							input.From = context.Int("from")
+							input.To = context.Int("to")
+							input.BlockSize = context.Int("block_size")
+							input.Pin = context.Bool("pin")
+							input.Replica = context.Int("replica")
+							return postFiles(input)
 						},
 					},
 					{
@@ -238,19 +200,20 @@ func main() {
 						Usage: "unpin by cids list file",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:        "cids_file",
-								Value:       "cids list file",
-								Destination: &params.FilesDir,
-								Aliases:     []string{"c"},
-								Required:    true,
+								Name:     "cids_file",
+								Value:    "cids list file",
+								Aliases:  []string{"c"},
+								Required: true,
 							},
 						},
 						Before: func(context *cli.Context) error {
 							return loadFileCids(context.String("cids_file"))
 						},
 						Action: func(context *cli.Context) error {
-							input.TestCase = TestCaseClusterPinRm
-							return doHttpRequests(http.MethodDelete, "/pins/ipfs", true)
+							input := ClusterPinInput{}
+							input.Method = http.MethodDelete
+							input.Path = "/pins/ipfs"
+							return doIterUrlHttpInput(input)
 						},
 					},
 				},
@@ -259,72 +222,55 @@ func main() {
 				Name: "ipfs",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "test_case",
-						Usage:       "test case name",
-						Destination: &input.TestCase,
-						Aliases:     []string{"tc"},
-						Required:    true,
+						Name:     "method",
+						Usage:    "http method: [GET/POST/DELETE]",
+						Aliases:  []string{"m"},
+						Required: true,
 					},
 					&cli.StringFlag{
-						Name:        "api_path",
-						Usage:       "api path, eg: [/api/v0/swarm/peers, /api/v0/id]",
-						Destination: &input.ApiPath,
-						Aliases:     []string{"ap"},
-						Required:    true,
-					},
-					&cli.StringFlag{
-						Name:        "http_method",
-						Usage:       "http method: [GET/POST/DELETE]",
-						Destination: &input.HttpMethod,
-						Value:       "POST",
-						Aliases:     []string{"hm"},
-						Required:    true,
+						Name:     "path",
+						Usage:    "api path, eg: [/api/v0/swarm/peers, /api/v0/id]",
+						Aliases:  []string{"p"},
+						Required: true,
 					},
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name: "repeat_request",
+						Name: "repeat_test",
 						Flags: []cli.Flag{
 							&cli.UintFlag{
-								Name:        "repeat",
-								Usage:       "repeat per goroutine",
-								Destination: &input.Repeat,
-								Value:       100,
-								Aliases:     []string{"r"},
-								Required:    true,
+								Name:     "repeat",
+								Usage:    "repeat per goroutine",
+								Aliases:  []string{"r"},
+								Required: true,
 							},
 						},
 						Action: func(context *cli.Context) error {
-							return doRequestsRepeat(input.HttpMethod, input.ApiPath, int(input.Repeat))
+							input := IpfsRepeatInput{}
+							input.Method = context.String("method")
+							input.Path = context.String("path")
+							input.Repeat = context.Int("repeat")
+							return doRepeatHttpInput(input)
 						},
 					},
 					{
-						Name: "iter_request",
+						Name: "iter_test",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:        "test_result_file",
-								Usage:       "the file To save test result",
-								Destination: &params.TestResultFile,
-								Aliases:     []string{"trf"},
-								Required:    true,
-							},
-							&cli.BoolFlag{
-								Name:        "drop",
-								Usage:       "drop http response, for /api/v0/cat api",
-								Destination: &params.Drop,
-								Value:       true,
-								Aliases:     []string{"d"},
+								Name:     "test_result_file",
+								Aliases:  []string{"trf"},
+								Required: true,
 							},
 						},
 						Before: func(context *cli.Context) error {
-							return loadFid2CidsFromTestFile()
+							return loadFid2CidsFromTestFile(context.String("test_result_file"))
 						},
 						Action: func(context *cli.Context) error {
-							return doHttpRequests(
-								input.HttpMethod,
-								input.ApiPath,
-								false,
-							)
+							input := IpfsIterInput{}
+							input.Method = context.String("method")
+							input.Path = context.String("path")
+							input.TestFile = context.String("test_result_file")
+							return doIpfsIterInput(input)
 						},
 					},
 				},
@@ -332,23 +278,28 @@ func main() {
 			{
 				Name: "gen_files",
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:        "files_dir",
-						Value:       "files",
-						Destination: &params.FilesDir,
-						Aliases:     []string{"d"},
+					&cli.IntFlag{
+						Name:    "from",
+						Value:   0,
+						Aliases: []string{"f"},
 					},
 					&cli.IntFlag{
-						Name:        "size",
-						Usage:       "file size",
-						Value:       1024 * 1024,
-						Destination: &params.FileSize,
-						Aliases:     []string{"s"},
+						Name:    "to",
+						Value:   10,
+						Aliases: []string{"t"},
+					},
+					&cli.IntFlag{
+						Name:    "size",
+						Value:   1024 * 1024,
+						Aliases: []string{"s"},
 					},
 				},
 				Action: func(context *cli.Context) error {
-					input.TestCase = TestCaseGenFile
-					return genFiles()
+					input := GenFileInput{}
+					input.From = context.Int("from")
+					input.To = context.Int("to")
+					input.Size = context.Int("size")
+					return genFiles(input)
 				},
 			},
 		},

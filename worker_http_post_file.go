@@ -3,14 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/buger/jsonparser"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 var postFileUrl string
@@ -25,7 +24,7 @@ func createPostFileRequest(fid int) (*http.Request, error) {
 		return nil, e
 	}
 
-	fp := filepath.Join(params.FilesDir, fidStr)
+	fp := filepath.Join(PathFiles, fidStr)
 	f, e := os.Open(fp)
 	if e != nil {
 		return nil, e
@@ -62,13 +61,13 @@ func postFile(fid int) Result {
 	return doHttpRequest(req)
 }
 
-func postFiles() error {
+func postFiles(input ClusterAddInput) error {
 	var countResultsWg sync.WaitGroup
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)
 
-	postFileUrl = "http://" + input.HostPort + "/add" + clusterAddParams()
-	if params.Verbose {
+	postFileUrl = input.baseUrl() + input.urlParams()
+	if verbose {
 		logger.Debug(postFileUrl)
 	}
 

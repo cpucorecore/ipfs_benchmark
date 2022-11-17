@@ -1,20 +1,18 @@
 package main
 
 import (
-	"net/http"
-	"sync"
-
 	"go.uber.org/zap"
+	"net/http"
 )
 
 func doHttpRequests(method, path string, iterativePath bool) error {
 	baseUrl := HTTP + input.HostPort + path
 
-	var countResultsWg sync.WaitGroup
+	var countResultsWg syncConcurrency.WaitGroup
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)
 
-	var wg sync.WaitGroup
+	var wg syncConcurrency.WaitGroup
 	wg.Add(input.Goroutines)
 	for i := 0; i < input.Goroutines; i++ {
 		go func() {
@@ -29,12 +27,12 @@ func doHttpRequests(method, path string, iterativePath bool) error {
 				var url string
 				if iterativePath {
 					url = baseUrl + "/" + fid2Cid.Cid
-					paramsFunction := paramsFunctionsRepetitive[path]
+					paramsFunction := repetitive[path]
 					if paramsFunction != nil {
 						url = baseUrl + paramsFunction()
 					}
 				} else {
-					paramsFunction := paramsFunctionsIterative[path]
+					paramsFunction := iterative[path]
 					if paramsFunction != nil {
 						url = baseUrl + paramsFunction(fid2Cid.Cid)
 					}
@@ -49,10 +47,6 @@ func doHttpRequests(method, path string, iterativePath bool) error {
 				r := doHttpRequest(req)
 				r.Cid = fid2Cid.Cid
 				r.Fid = fid2Cid.Fid
-
-				if params.Verbose {
-					logger.Debug("http response", zap.String("body", r.Resp))
-				}
 
 				if r.Err != nil {
 					r.Ret = -1
@@ -75,18 +69,18 @@ func doHttpRequests(method, path string, iterativePath bool) error {
 func doRequestsRepeat(method, path string, repeat int) error {
 	baseUrl := "http://" + input.HostPort + path
 
-	var countResultsWg sync.WaitGroup
+	var countResultsWg syncConcurrency.WaitGroup
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)
 
-	var wg sync.WaitGroup
+	var wg syncConcurrency.WaitGroup
 	wg.Add(input.Goroutines)
 	for i := 0; i < input.Goroutines; i++ {
 		go func(gid int) {
 			defer wg.Done()
 
 			url := baseUrl
-			paramsFunction := paramsFunctionsRepetitive[path]
+			paramsFunction := repetitive[path]
 			if paramsFunction != nil {
 				url += paramsFunction()
 			}
@@ -100,11 +94,6 @@ func doRequestsRepeat(method, path string, repeat int) error {
 			for c < repeat {
 				c++
 				r := doHttpRequest(req)
-
-				if params.Verbose {
-					logger.Debug("http response", zap.String("body", r.Resp))
-				}
-
 				chResults <- r
 			}
 		}(i)
