@@ -5,11 +5,8 @@ import (
 	"sync"
 )
 
-func doRepeatHttpInput(input IHttpInputRepeat) error {
-	method := input.method()
-	url := input.baseUrl() + input.urlParams()
-	repeat := input.repeat()
-	dropHttpResp := input.dropHttpResp()
+func doRepeatHttpInput(pu ParamsUrl) error {
+	url := baseUrl() + pu.paramsUrl()
 
 	var countResultsWg sync.WaitGroup
 	countResultsWg.Add(1)

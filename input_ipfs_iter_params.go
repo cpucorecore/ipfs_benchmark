@@ -5,34 +5,26 @@ import (
 	"net/url"
 )
 
-var _ IHttpInputIterParams = IpfsDhtFindprovsInput{}
-
 type IpfsDhtFindprovsInput struct {
-	IterHttpInput
-	Verbose bool
+	IterHttpParams
+	Verbose_ bool
 }
 
-func (i IpfsDhtFindprovsInput) iterUrlParams(it string) string {
+func (i IpfsDhtFindprovsInput) paramsUrl(it string) string {
 	values := url.Values{
 		"arg":     {it},
-		"verbose": {fmt.Sprintf("%v", i.Verbose)},
+		"Verbose": {fmt.Sprintf("%v", i.Verbose)},
 	}
 
 	return "?" + values.Encode()
 }
 
-func (i IpfsDhtFindprovsInput) url(it string) string {
-	return i.baseUrl() + i.iterUrlParams(it)
-}
-
-var _ IHttpInputIterParams = IpfsDagStatInput{}
-
 type IpfsDagStatInput struct {
-	IterHttpInput
+	IterHttpParams
 	Progress bool
 }
 
-func (i IpfsDagStatInput) iterUrlParams(it string) string {
+func (i IpfsDagStatInput) paramsUrl(it string) string {
 	values := url.Values{
 		"arg":      {it},
 		"progress": {fmt.Sprintf("%v", i.Progress)},
@@ -41,20 +33,14 @@ func (i IpfsDagStatInput) iterUrlParams(it string) string {
 	return "?" + values.Encode()
 }
 
-func (i IpfsDagStatInput) url(it string) string {
-	return i.baseUrl() + i.iterUrlParams(it)
-}
-
-var _ IHttpInputIterParams = IpfsCatInput{}
-
 type IpfsCatInput struct {
-	IterHttpInput
+	IterHttpParams
 	Offset   int
 	Length   int
 	Progress bool
 }
 
-func (i IpfsCatInput) iterUrlParams(it string) string {
+func (i IpfsCatInput) paramsUrl(it string) string {
 	values := url.Values{
 		"arg":      {it},
 		"offset":   {fmt.Sprintf("%d", i.Offset)},
@@ -63,8 +49,4 @@ func (i IpfsCatInput) iterUrlParams(it string) string {
 	}
 
 	return "?" + values.Encode()
-}
-
-func (i IpfsCatInput) url(it string) string {
-	return i.baseUrl() + i.iterUrlParams(it)
 }

@@ -7,9 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func doIterHttpRequest(input IHttpInput) error {
-	dropHttpResp := input.dropHttpResp()
-
+func doIterParamsRequest(ipu IterParamsUrl) error {
 	var countResultsWg sync.WaitGroup
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)
@@ -26,12 +24,12 @@ func doIterHttpRequest(input IHttpInput) error {
 					break
 				}
 
-				url := input.url(fid2Cid.Cid)
-				if detail {
+				url := ipu.url(fid2Cid.Cid)
+				if verbose {
 					logger.Debug("http req", zap.String("url", url))
 				}
 
-				req, _ := http.NewRequest(input.method(), url, nil)
+				req, _ := http.NewRequest(ipu.method(), url, nil)
 
 				r := doHttpRequest(req, dropHttpResp)
 				r.Cid = fid2Cid.Cid

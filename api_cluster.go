@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 )
 
-func gc(hostPort string) error {
-	url := "http://" + hostPort + "/ipfs/gc?local=false"
+func gc() error {
+	url := "http://" + host + ":" + port + "/ipfs/gc?local=false"
 	resp, e := httpClient.Post(url, "", nil)
 	if e != nil {
 		logger.Error("httpClient post err", zap.String("err", e.Error()))

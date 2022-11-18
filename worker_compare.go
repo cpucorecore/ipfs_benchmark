@@ -7,7 +7,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-func CompareTests(input CompareInput, testFiles ...string) error {
+func CompareTests(input CompareParams, testFiles ...string) error {
 	name := input.name()
 
 	linesTps := make([]Line, len(testFiles))

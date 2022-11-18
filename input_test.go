@@ -13,6 +13,6 @@ func TestUrl(t *testing.T) {
 	t.Log(repeatHttpInput.url(""))
 
 	httpInput.Path = "/pins/ipfs"
-	iterUrlHttpInput := IterUrlHttpInput{HttpInput: httpInput}
+	iterUrlHttpInput := IterUrlHttpInput{IterHttpInput}
 	t.Log(iterUrlHttpInput.url("QmPG8j4qPYkJr6wHemHK1u7jCa6hYbu3d53CZa5yP5aomz"))
 }

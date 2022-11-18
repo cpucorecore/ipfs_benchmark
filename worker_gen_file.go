@@ -15,7 +15,7 @@ const (
 	DeviceURandom = "/dev/urandom"
 )
 
-func genFiles(input GenFileInput) error {
+func genFiles(input GenFileParams) error {
 	chFids := make(chan int, 10000)
 	go func() {
 		for i := input.From; i < input.To; i++ {
@@ -111,7 +111,7 @@ func genFiles(input GenFileInput) error {
 				r.Latency = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r
-				if detail {
+				if verbose {
 					logger.Debug("file generated", zap.String("file", fp))
 				}
 			}

@@ -5,19 +5,17 @@ import (
 	"net/url"
 )
 
-var _ IHttpInputRepeat = IpfsSwarmPeersInput{}
-
 type IpfsSwarmPeersInput struct {
-	RepeatHttpInput
-	Verbose   bool
+	RepeatHttpParams
+	Verbose_  bool
 	Streams   bool
 	Latency   bool
 	Direction bool
 }
 
-func (i IpfsSwarmPeersInput) urlParams() string {
+func (i IpfsSwarmPeersInput) paramsUrl() string {
 	values := url.Values{
-		"verbose":   {fmt.Sprintf("%v", i.Verbose)},
+		"Verbose":   {fmt.Sprintf("%v", i.Verbose_)},
 		"streams":   {fmt.Sprintf("%v", i.Streams)},
 		"latency":   {fmt.Sprintf("%v", i.Latency)},
 		"direction": {fmt.Sprintf("%v", i.Direction)},
@@ -25,17 +23,10 @@ func (i IpfsSwarmPeersInput) urlParams() string {
 	return "?" + values.Encode()
 }
 
-func (i IpfsSwarmPeersInput) url(_ string) string {
-	return i.baseUrl() + i.urlParams()
-}
-
-var _ IHttpInputRepeat = IpfsIdInput{}
-
 type IpfsIdInput struct {
-	RepeatHttpInput
+	RepeatHttpParams
 }
 
-func (i IpfsIdInput) urlParams() string {
-	// not required: ?arg=<peerid>&format=<value>&peerid-base=b58mh
+func (i IpfsIdInput) paramsUrl() string {
 	return ""
 }

@@ -66,8 +66,8 @@ func postFiles(input ClusterAddInput) error {
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)
 
-	postFileUrl = input.baseUrl() + input.urlParams()
-	if detail {
+	postFileUrl = baseUrl() + input.paramsUrl()
+	if verbose {
 		logger.Debug(postFileUrl)
 	}
 

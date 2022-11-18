@@ -128,7 +128,7 @@ type Fid2Cid struct {
 	Cid string
 }
 
-func loadFid2CidsFromTestFile(testFile string, from, to int) error {
+func loadFid2CidsFromTestFile() error {
 	t, e := loadTest(testFile)
 	if e != nil {
 		logger.Error("loadTest err", zap.String("err", e.Error()))
@@ -165,6 +165,8 @@ func loadFileCids(file string) error {
 	if e != nil {
 		return e
 	}
+
+	// TODO reset from, to by cids length
 
 	cids := strings.Split(strings.TrimSpace(string(bs)), "\n")
 	go func() {

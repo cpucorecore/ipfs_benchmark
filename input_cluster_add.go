@@ -1,17 +1,12 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 )
 
-var _ IConstHttpInput = ClusterAddInput{}
-
 type ClusterAddInput struct {
-	HttpInput
-	From      int
-	To        int
+	IterHttpParams
 	BlockSize int
 	Replica   int
 	Pin       bool
@@ -22,24 +17,15 @@ const (
 	MaxBlockSize = 1024 * 1024
 )
 
-func (i ClusterAddInput) check() error {
-	if i.BlockSize < MinBlockSize || i.BlockSize > MaxBlockSize {
-		return errors.New(fmt.Sprintf("wrong block size, must >= %d and <= %d", MinBlockSize, MaxBlockSize))
-	}
-
-	if i.Replica <= 0 {
-		return errors.New("wrong replica, replica must > 0")
-	}
-
-	return checkFromTo(i.From, i.To)
+func (i ClusterAddInput) info() string {
+	return fmt.Sprintf("%s_bs%d_replica%d_pin-%v", i.IterHttpParams.info(), i.BlockSize, i.Replica, i.Pin)
 }
 
-func (i ClusterAddInput) paramsStr() string {
-	return fmt.Sprintf("%s_%s_block_size-%d_replica-%d_pin-%v",
-		baseParamsStr(), fromToParamsStr(i.From, i.To), i.BlockSize, i.Replica, i.Pin)
+func (i ClusterAddInput) check() bool {
+	return i.IterHttpParams.check() && i.BlockSize >= MinBlockSize && i.BlockSize <= MaxBlockSize && i.Replica > 0
 }
 
-func (i ClusterAddInput) urlParams() string {
+func (i ClusterAddInput) paramsUrl() string {
 	chunker := fmt.Sprintf("size-%d", i.BlockSize)
 	noPin := fmt.Sprintf("%t", !i.Pin)
 	min := fmt.Sprintf("%d", i.Replica)

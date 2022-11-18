@@ -1,7 +1,9 @@
 package main
 
-type IterUrlHttpInput IterHttpInput
+type IterUrlHttpInput struct {
+	IterHttpInput
+}
 
-func (i IterUrlHttpInput) iterUrl(it string) string {
+func (i IterHttpInput) iterUrl(it string) string {
 	return "/" + it
 }

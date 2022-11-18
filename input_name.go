@@ -31,7 +31,7 @@ func getNameByHttpMethodAndPath(method, path string) string {
 	} else {
 		// TODO
 		// e.g.:
-		// POST /api/v0/id		--> post-api_v0_i
+		// POST /ipfs/v0/id		--> post-ipfs_id
 		// DELETE /pins/ipfs	--> delete-pins_ipfs
 		return ""
 	}

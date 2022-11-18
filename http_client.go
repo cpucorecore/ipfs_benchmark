@@ -64,7 +64,7 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 
 	if !dropHttpResp {
 		r.Resp = string(body)
-		if detail {
+		if verbose {
 			logger.Debug("http response", zap.String("body", r.Resp))
 		}
 	}
