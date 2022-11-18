@@ -18,7 +18,7 @@ type IHttpInput interface {
 	port() string
 	method() string
 	path() string
-	baseUrl() string // "http://" + host() + ":" + port() + path()
+	baseUrl() string
 	dropHttpRespBody() bool
 }
 
