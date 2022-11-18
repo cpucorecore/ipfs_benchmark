@@ -16,7 +16,7 @@ const (
 )
 
 func outputSummary(rs ResultsSummary) {
-	name := ipt.name()
+	name := ipt.name() + "_" + ipt.paramsStr()
 	e := DrawValues(
 		name,
 		XLabel,

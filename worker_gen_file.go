@@ -11,6 +11,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	DeviceURandom = "/dev/urandom"
+)
+
 func genFiles(input GenFileInput) error {
 	chFids := make(chan int, 10000)
 	go func() {

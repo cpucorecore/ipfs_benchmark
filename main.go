@@ -8,10 +8,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	DeviceURandom = "/dev/urandom"
-)
-
 var (
 	chFid2Cids = make(chan Fid2Cid, 20000)
 	chResults  = make(chan Result, 30000)
@@ -107,6 +103,7 @@ func main() {
 						SortTps:     context.Bool("sort_tps"),
 						SortLatency: context.Bool("sort_latency"),
 					}
+					ipt = input
 					return CompareTests(input, context.Args().Slice()...)
 				},
 			},
@@ -148,6 +145,7 @@ func main() {
 									input.Port = port
 									input.Method = http.MethodPost
 									input.Path = "/pins/ipfs"
+									input.TestFile = context.String("test_result_file")
 									ipt = input
 									return doIterUrlHttpInput(input)
 								},
@@ -155,11 +153,12 @@ func main() {
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									input := ClusterPinAddInput{}
+									input := ClusterPinRmInput{}
 									input.Host = host
 									input.Port = port
 									input.Method = http.MethodDelete
 									input.Path = "/pins/ipfs"
+									input.TestFile = context.String("test_result_file")
 									ipt = input
 									return doIterUrlHttpInput(input)
 								},
@@ -167,11 +166,12 @@ func main() {
 							{
 								Name: "get",
 								Action: func(context *cli.Context) error {
-									input := ClusterPinAddInput{}
+									input := ClusterPinGetInput{}
 									input.Host = host
 									input.Port = port
 									input.Method = http.MethodGet
 									input.Path = "/pins"
+									input.TestFile = context.String("test_result_file")
 									ipt = input
 									return doIterUrlHttpInput(input)
 								},
@@ -285,7 +285,7 @@ func main() {
 							input.Host = host
 							input.Port = port
 							ipt = input
-							return doRepeatHttpInput(input)
+							return doRepeatHttpInput(input, input.Repeat)
 						},
 					},
 					{
@@ -338,6 +338,7 @@ func main() {
 						To:   context.Int("to"),
 						Size: context.Int("size"),
 					}
+					ipt = input
 					return genFiles(input)
 				},
 			},

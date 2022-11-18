@@ -5,13 +5,11 @@ import (
 	"sync"
 )
 
-func doRepeatHttpInput(input ConstHttpInput) error {
+func doRepeatHttpInput(input ConstHttpInput, repeat int) error {
 	url := input.baseUrl() + input.urlParams()
 	if verbose {
 		logger.Debug(url)
 	}
-
-	repeat := input.repeat()
 
 	var countResultsWg sync.WaitGroup
 	countResultsWg.Add(1)

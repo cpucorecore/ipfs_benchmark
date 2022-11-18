@@ -14,23 +14,27 @@ func baseParamsStr() string {
 	return fmt.Sprintf("v-%v_g-%d_sync-%v", verbose, goroutines, syncConcurrency)
 }
 
-var _ IHttpInput = HttpInput{}
-
-type HttpInput struct {
-	Sample           int
-	Host             string
-	Port             string
-	Path             string
-	Method           string
-	DropHttpRespBody bool
+type SampleInput struct {
+	Sample int
 }
 
-func (i HttpInput) setSample(sample int) {
+func (i SampleInput) setSample(sample int) {
 	i.Sample = sample
 }
 
-func (i HttpInput) getSample() int {
+func (i SampleInput) getSample() int {
 	return i.Sample
+}
+
+var _ IHttpInput = HttpInput{}
+
+type HttpInput struct {
+	SampleInput
+	Host             string
+	Port             string
+	Method           string
+	Path             string
+	DropHttpRespBody bool
 }
 
 func (i HttpInput) name() string {

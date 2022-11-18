@@ -74,7 +74,7 @@ type TestForLoad struct {
 }
 
 func saveTest(rs ResultsSummary) {
-	name := ipt.name()
+	name := ipt.name() + "_" + ipt.paramsStr()
 
 	var ers []ErrResult
 	for _, r := range rs.Results {

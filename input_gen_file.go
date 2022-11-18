@@ -2,9 +2,10 @@ package main
 
 import "fmt"
 
-var _ IInput = GenFileInput{}
+var _ ISampleInput = GenFileInput{}
 
 type GenFileInput struct {
+	SampleInput
 	From int
 	To   int
 	Size int

@@ -5,9 +5,10 @@ import (
 	"time"
 )
 
-var _ IInput = CompareInput{}
+var _ ISampleInput = CompareInput{}
 
 type CompareInput struct {
+	SampleInput
 	Tag         string
 	Timestamp   bool
 	SortTps     bool
