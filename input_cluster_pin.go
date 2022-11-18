@@ -5,16 +5,20 @@ import (
 	"net/url"
 )
 
-var _ IIterUrlHttpInput = ClusterPinAddInput{}
-
-type ClusterPinAddInput struct {
+type ClusterPinInput struct {
 	HttpInput
 	TestFile string
-	Replica  int
 }
 
-func (i ClusterPinAddInput) iterUrl(it string) string {
+func (i ClusterPinInput) iterUrl(it string) string {
 	return "/" + it
+}
+
+var _ IHttpInputIterUrl = ClusterPinAddInput{}
+
+type ClusterPinAddInput struct {
+	ClusterPinInput
+	Replica int
 }
 
 func (i ClusterPinAddInput) urlParams() string {
@@ -29,24 +33,20 @@ func (i ClusterPinAddInput) urlParams() string {
 	return "?" + values.Encode()
 }
 
-var _ IIterUrlHttpInput = ClusterPinRmInput{}
+var _ IHttpInputIterUrl = ClusterPinRmInput{}
 
-type ClusterPinRmInput ClusterPinAddInput
-
-func (i ClusterPinRmInput) iterUrl(it string) string {
-	return "/" + it
+type ClusterPinRmInput struct {
+	ClusterPinInput
 }
 
 func (i ClusterPinRmInput) urlParams() string {
 	return ""
 }
 
-var _ IIterUrlHttpInput = ClusterPinGetInput{}
+var _ IHttpInputIterUrl = ClusterPinGetInput{}
 
-type ClusterPinGetInput ClusterPinAddInput
-
-func (i ClusterPinGetInput) iterUrl(it string) string {
-	return "/" + it
+type ClusterPinGetInput struct {
+	ClusterPinInput
 }
 
 func (i ClusterPinGetInput) urlParams() string {

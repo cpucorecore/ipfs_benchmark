@@ -74,7 +74,7 @@ type TestForLoad struct {
 }
 
 func saveTest(rs ResultsSummary) {
-	name := ipt.name() + "_" + ipt.paramsStr()
+	name := iInput.name() + "_" + iInput.paramsStr()
 
 	var ers []ErrResult
 	for _, r := range rs.Results {
@@ -91,7 +91,7 @@ func saveTest(rs ResultsSummary) {
 	}
 
 	t := Test{
-		Input:          ipt,
+		Input:          iInput,
 		ResultsSummary: rs,
 	}
 
@@ -128,20 +128,19 @@ type Fid2Cid struct {
 	Cid string
 }
 
-func loadFid2CidsFromTestFile(testFile string) error {
+func loadFid2CidsFromTestFile(testFile string, from, to int) error {
 	t, e := loadTest(testFile)
 	if e != nil {
 		logger.Error("loadTest err", zap.String("err", e.Error()))
 		return e
 	}
 
-	//if input.To > len(t.ResultsSummary.Results) {
-	//	input.To = len(t.ResultsSummary.Results)
-	//}
+	if to > len(t.ResultsSummary.Results) {
+		to = len(t.ResultsSummary.Results)
+	}
 
 	go func() {
-		//for _, r := range t.ResultsSummary.Results[input.From:input.To] {
-		for _, r := range t.ResultsSummary.Results {
+		for _, r := range t.ResultsSummary.Results[from:to] {
 			if r.Cid != "" {
 				chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
 			}

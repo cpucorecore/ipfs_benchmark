@@ -1,9 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-func fromToCheck(from, to int) bool {
-	return from >= 0 && to >= 0 && to >= from
+func checkFromTo(from, to int) error {
+	if from < 0 || to < 0 || to < from {
+		return errors.New(fmt.Sprintf("wrong [from, to), from:%d, to:%d", from, to))
+	}
+	return nil
 }
 
 func fromToParamsStr(from, to int) string {

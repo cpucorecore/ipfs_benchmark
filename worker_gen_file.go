@@ -111,7 +111,7 @@ func genFiles(input GenFileInput) error {
 				r.Latency = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r
-				if verbose {
+				if detail {
 					logger.Debug("file generated", zap.String("file", fp))
 				}
 			}

@@ -5,10 +5,9 @@ import (
 	"time"
 )
 
-var _ ISampleInput = CompareInput{}
+var _ IInput = CompareInput{}
 
 type CompareInput struct {
-	SampleInput
 	Tag         string
 	Timestamp   bool
 	SortTps     bool
@@ -23,8 +22,8 @@ func (i CompareInput) name() string {
 	return n
 }
 
-func (i CompareInput) check() bool {
-	return true
+func (i CompareInput) check() error {
+	return nil
 }
 
 func (i CompareInput) paramsStr() string {

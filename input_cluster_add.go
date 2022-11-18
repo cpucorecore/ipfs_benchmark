@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 )
@@ -16,23 +17,21 @@ type ClusterAddInput struct {
 	Pin       bool
 }
 
-func (i ClusterAddInput) repeat() int { // TODO remove this interface impl
-	return 1
-}
-
-func (i ClusterAddInput) samples() int {
-	return i.To - i.From
-}
-
 const (
 	MinBlockSize = 1024 * 256
 	MaxBlockSize = 1024 * 1024
 )
 
-func (i ClusterAddInput) check() bool {
-	return fromToCheck(i.From, i.To) &&
-		i.BlockSize >= MinBlockSize && i.BlockSize <= MaxBlockSize &&
-		i.Replica > 0
+func (i ClusterAddInput) check() error {
+	if i.BlockSize < MinBlockSize || i.BlockSize > MaxBlockSize {
+		return errors.New(fmt.Sprintf("wrong block size, must >= %d and <= %d", MinBlockSize, MaxBlockSize))
+	}
+
+	if i.Replica <= 0 {
+		return errors.New("wrong replica, replica must > 0")
+	}
+
+	return checkFromTo(i.From, i.To)
 }
 
 func (i ClusterAddInput) paramsStr() string {

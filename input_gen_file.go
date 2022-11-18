@@ -1,11 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
-var _ ISampleInput = GenFileInput{}
+var _ IInput = GenFileInput{}
 
 type GenFileInput struct {
-	SampleInput
 	From int
 	To   int
 	Size int
@@ -15,8 +16,8 @@ func (i GenFileInput) name() string {
 	return "gen_file"
 }
 
-func (i GenFileInput) check() bool {
-	return fromToCheck(i.From, i.To)
+func (i GenFileInput) check() error {
+	return checkFromTo(i.From, i.To)
 }
 
 func (i GenFileInput) paramsStr() string {

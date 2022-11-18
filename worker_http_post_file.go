@@ -58,7 +58,7 @@ func postFile(fid int) Result {
 		return Result{Fid: fid, Ret: -1, Err: e}
 	}
 
-	return doHttpRequest(req)
+	return doHttpRequest(req, false)
 }
 
 func postFiles(input ClusterAddInput) error {
@@ -67,7 +67,7 @@ func postFiles(input ClusterAddInput) error {
 	go countResults(&countResultsWg)
 
 	postFileUrl = input.baseUrl() + input.urlParams()
-	if verbose {
+	if detail {
 		logger.Debug(postFileUrl)
 	}
 

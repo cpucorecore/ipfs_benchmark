@@ -6,7 +6,7 @@ import (
 )
 
 func gc(hostPort string) error {
-	url := HTTP + hostPort + "/ipfs/gc?local=false"
+	url := "http://" + hostPort + "/ipfs/gc?local=false"
 	resp, e := httpClient.Post(url, "", nil)
 	if e != nil {
 		logger.Error("httpClient post err", zap.String("err", e.Error()))

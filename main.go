@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -9,11 +10,24 @@ import (
 )
 
 var (
+	iInput IInput
+
+	detail          bool
+	goroutines      int
+	syncConcurrency bool
+
+	host string
+	port string
+
 	chFid2Cids = make(chan Fid2Cid, 20000)
 	chResults  = make(chan Result, 30000)
 
 	logger *zap.Logger
 )
+
+func baseParamsStr() string {
+	return fmt.Sprintf("detail-%v_g-%d_sync-%v", detail, goroutines, syncConcurrency)
+}
 
 func init() {
 	logger, _ = zap.NewDevelopment()
@@ -25,20 +39,15 @@ func init() {
 	}
 }
 
-var dropHttpRespBody = false
-var ipt ISampleInput
-var host string
-var port string
-
 func main() {
 	app := &cli.App{
 		Name: "ipfs_benchmark",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:        "verbose",
+				Name:        "detail",
 				Usage:       "Verbose log",
 				Value:       false,
-				Destination: &verbose,
+				Destination: &detail,
 				Aliases:     []string{"v"},
 			},
 			&cli.IntFlag{
@@ -103,7 +112,10 @@ func main() {
 						SortTps:     context.Bool("sort_tps"),
 						SortLatency: context.Bool("sort_latency"),
 					}
-					ipt = input
+					if e := input.check(); e != nil {
+						return e
+					}
+					iInput = input
 					return CompareTests(input, context.Args().Slice()...)
 				},
 			},
@@ -126,9 +138,23 @@ func main() {
 								Aliases:  []string{"trf"},
 								Required: true,
 							},
+							&cli.IntFlag{
+								Name:    "from",
+								Aliases: []string{"f"},
+								Value:   0,
+							},
+							&cli.IntFlag{
+								Name:    "to",
+								Aliases: []string{"t"},
+								Value:   0,
+							},
 						},
 						Before: func(context *cli.Context) error {
-							return loadFid2CidsFromTestFile(context.String("test_result_file"))
+							return loadFid2CidsFromTestFile(
+								context.String("test_result_file"),
+								context.Int("from"),
+								context.Int("to"),
+							)
 						},
 						Subcommands: []*cli.Command{
 							{
@@ -146,34 +172,44 @@ func main() {
 									input.Method = http.MethodPost
 									input.Path = "/pins/ipfs"
 									input.TestFile = context.String("test_result_file")
-									ipt = input
-									return doIterUrlHttpInput(input)
+									input.Replica = context.Int("replica")
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doIterHttpRequest(input)
 								},
 							},
 							{
 								Name: "rm",
 								Action: func(context *cli.Context) error {
-									input := ClusterPinRmInput{}
+									var input ClusterPinRmInput
 									input.Host = host
 									input.Port = port
 									input.Method = http.MethodDelete
 									input.Path = "/pins/ipfs"
 									input.TestFile = context.String("test_result_file")
-									ipt = input
-									return doIterUrlHttpInput(input)
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doIterHttpRequest(input)
 								},
 							},
 							{
 								Name: "get",
 								Action: func(context *cli.Context) error {
-									input := ClusterPinGetInput{}
+									var input ClusterPinGetInput
 									input.Host = host
 									input.Port = port
 									input.Method = http.MethodGet
 									input.Path = "/pins"
 									input.TestFile = context.String("test_result_file")
-									ipt = input
-									return doIterUrlHttpInput(input)
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doIterHttpRequest(input)
 								},
 							},
 						},
@@ -220,7 +256,10 @@ func main() {
 							input.Port = port
 							input.Method = http.MethodPost
 							input.Path = "/add"
-							ipt = input
+							if e := input.check(); e != nil {
+								return e
+							}
+							iInput = input
 							return postFiles(input)
 						},
 					},
@@ -244,28 +283,17 @@ func main() {
 							input.Path = "/pins/ipfs"
 							input.Host = host
 							input.Port = port
-							ipt = input
-							return doIterUrlHttpInput(input)
+							if e := input.check(); e != nil {
+								return e
+							}
+							iInput = input
+							return doIterHttpRequest(input)
 						},
 					},
 				},
 			},
 			{
 				Name: "ipfs",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "method",
-						Usage:    "http method: [GET/POST/DELETE]",
-						Aliases:  []string{"m"},
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "path",
-						Usage:    "api path, eg: [/api/v0/swarm/peers, /api/v0/id]",
-						Aliases:  []string{"p"},
-						Required: true,
-					},
-				},
 				Subcommands: []*cli.Command{
 					{
 						Name: "repeat_test",
@@ -277,38 +305,173 @@ func main() {
 								Required: true,
 							},
 						},
-						Action: func(context *cli.Context) error {
-							input := ConstHttpInput{}
-							input.Method = context.String("method")
-							input.Path = context.String("path")
-							input.Repeat = context.Int("repeat")
-							input.Host = host
-							input.Port = port
-							ipt = input
-							return doRepeatHttpInput(input, input.Repeat)
+						Subcommands: []*cli.Command{
+							{
+								// curl -X POST "http://127.0.0.1:5001/api/v0/swarm/peers?verbose=<value>&streams=<value>&latency=<value>&direction=<value>"
+								Name: "swarm_peers",
+								Flags: []cli.Flag{
+									&cli.BoolFlag{
+										Name:    "verbose",
+										Aliases: []string{"v"},
+										Value:   true,
+									},
+									&cli.BoolFlag{
+										Name:  "streams",
+										Value: true,
+									},
+									&cli.BoolFlag{
+										Name:  "latency",
+										Value: true,
+									},
+									&cli.BoolFlag{
+										Name:  "direction",
+										Value: true,
+									},
+								},
+								Action: func(context *cli.Context) error {
+
+									var input IpfsSwarmPeersInput
+									input.Host = host
+									input.Port = port
+									input.Method = http.MethodPost
+									input.Path = "/api/v0/swarm/peers"
+									input.DropHttpResp = false
+									input.Repeat = context.Int("repeat")
+									input.Verbose = context.Bool("verbose")
+									input.Streams = context.Bool("streams")
+									input.Latency = context.Bool("latency")
+									input.Direction = context.Bool("direction")
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doRepeatHttpInput(input)
+								},
+							},
 						},
 					},
 					{
 						Name: "iter_test",
+						// "http://127.0.0.1:5001/api/v0/id?arg=<peerid>&format=<value>&peerid-base=b58mh"
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:     "test_result_file",
 								Aliases:  []string{"trf"},
 								Required: true,
 							},
+							&cli.IntFlag{
+								Name:    "from",
+								Aliases: []string{"f"},
+								Value:   0,
+							},
+							&cli.IntFlag{
+								Name:    "to",
+								Aliases: []string{"t"},
+								Value:   0,
+							},
 						},
 						Before: func(context *cli.Context) error {
-							return loadFid2CidsFromTestFile(context.String("test_result_file"))
+							return loadFid2CidsFromTestFile(
+								context.String("test_result_file"),
+								context.Int("from"),
+								context.Int("to"),
+							)
 						},
-						Action: func(context *cli.Context) error {
-							input := IterParamsHttpInput{}
-							input.Method = context.String("method")
-							input.Path = context.String("path")
-							input.TestFile = context.String("test_result_file")
-							input.Host = host
-							input.Port = port
-							ipt = input
-							return doIpfsIterInput(input)
+						Subcommands: []*cli.Command{
+							{
+								// curl -X POST "http://127.0.0.1:5001/api/v0/dht/findprovs?arg=<key>&verbose=<value>&num-providers=20"
+								Name: "dht_findprovs",
+								Flags: []cli.Flag{
+									&cli.BoolFlag{
+										Name:    "verbose",
+										Aliases: []string{"v"},
+										Value:   true,
+									},
+								},
+								Action: func(context *cli.Context) error {
+									var input IpfsDhtFindprovsInput
+									input.Host = host
+									input.Port = port
+									input.Method = http.MethodPost
+									input.Path = "/api/v0/dht/findprovs"
+									input.DropHttpResp = false
+									input.TestFile = context.String("test_result_file")
+									input.From = context.Int("from")
+									input.To = context.Int("to")
+									input.Verbose = context.Bool("verbose")
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doIterHttpRequest(input)
+								},
+							},
+							{
+								// curl -X POST "http://127.0.0.1:5001/api/v0/dag/stat?arg=<root>&progress=true"
+								Name: "dag_stat",
+								Flags: []cli.Flag{
+									&cli.BoolFlag{
+										Name:    "progress",
+										Aliases: []string{"v"},
+										Value:   true,
+									},
+								},
+								Action: func(context *cli.Context) error {
+									var input IpfsDhtFindprovsInput
+									input.Host = host
+									input.Port = port
+									input.Method = http.MethodPost
+									input.Path = "/api/v0/dag/stat"
+									input.DropHttpResp = false
+									input.TestFile = context.String("test_result_file")
+									input.From = context.Int("from")
+									input.To = context.Int("to")
+									input.Verbose = context.Bool("verbose")
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doIterHttpRequest(input)
+								},
+							},
+							{
+								// curl -X POST "http://127.0.0.1:5001/api/v0/cat?arg=<ipfs-path>&offset=<value>&length=<value>&progress=true"
+								Name: "cat",
+								Flags: []cli.Flag{
+									&cli.IntFlag{
+										Name:    "offset",
+										Aliases: []string{"o"},
+										Value:   0,
+									},
+									&cli.IntFlag{
+										Name:    "length",
+										Aliases: []string{"l"},
+										Value:   0, // TODO check api
+									},
+									&cli.BoolFlag{
+										Name:    "progress",
+										Aliases: []string{"v"},
+										Value:   true,
+									},
+								},
+								Action: func(context *cli.Context) error {
+									var input IpfsDhtFindprovsInput
+									input.Host = host
+									input.Port = port
+									input.Method = http.MethodPost
+									input.Path = "/api/v0/cat"
+									input.DropHttpResp = true
+									input.TestFile = context.String("test_result_file")
+									input.From = context.Int("from")
+									input.To = context.Int("to")
+									input.Verbose = context.Bool("verbose")
+									if e := input.check(); e != nil {
+										return e
+									}
+									iInput = input
+									return doIterHttpRequest(input)
+								},
+							},
 						},
 					},
 				},
@@ -338,7 +501,10 @@ func main() {
 						To:   context.Int("to"),
 						Size: context.Int("size"),
 					}
-					ipt = input
+					if e := input.check(); e != nil {
+						return e
+					}
+					iInput = input
 					return genFiles(input)
 				},
 			},

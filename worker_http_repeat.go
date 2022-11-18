@@ -5,11 +5,11 @@ import (
 	"sync"
 )
 
-func doRepeatHttpInput(input ConstHttpInput, repeat int) error {
+func doRepeatHttpInput(input IHttpInputRepeat) error {
+	method := input.method()
 	url := input.baseUrl() + input.urlParams()
-	if verbose {
-		logger.Debug(url)
-	}
+	repeat := input.repeat()
+	dropHttpResp := input.dropHttpResp()
 
 	var countResultsWg sync.WaitGroup
 	countResultsWg.Add(1)
@@ -18,20 +18,18 @@ func doRepeatHttpInput(input ConstHttpInput, repeat int) error {
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 	for i := 0; i < goroutines; i++ {
-		go func(gid int) {
+		go func() {
 			defer wg.Done()
 
-			logger.Info(input.method())
-			logger.Info(url)
-			req, _ := http.NewRequest(input.method(), url, nil)
+			req, _ := http.NewRequest(method, url, nil)
 
 			c := 0
 			for c < repeat {
 				c++
-				r := doHttpRequest(req)
+				r := doHttpRequest(req, dropHttpResp)
 				chResults <- r
 			}
-		}(i)
+		}()
 	}
 
 	wg.Wait()

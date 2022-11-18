@@ -97,7 +97,7 @@ func processResults(in <-chan Result) ResultsSummary {
 			latencies = append(latencies, float64(r.Latency))
 		}
 
-		if verbose {
+		if detail {
 			if r.Ret != 0 {
 			} else {
 				logger.Debug(

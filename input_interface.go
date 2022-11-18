@@ -2,45 +2,35 @@ package main
 
 type IInput interface {
 	name() string
-	check() bool
+	check() error
 	paramsStr() string
 }
 
-type ISampleInput interface {
-	IInput
-	setSample(int)
-	getSample() int
-}
-
 type IHttpInput interface {
-	ISampleInput
-	host() string
-	port() string
+	IInput
 	method() string
-	path() string
+	dropHttpResp() bool
 	baseUrl() string
-	dropHttpRespBody() bool
+	url(it string) string
 }
 
-// IConstHttpInput
-// url: baseUrl() + urlParams()
 type IConstHttpInput interface {
 	IHttpInput
 	urlParams() string
+}
+
+type IHttpInputRepeat interface {
+	IConstHttpInput
 	repeat() int
 }
 
-// IIterUrlHttpInput
-// final url = baseUrl() + iterUrl(it) + urlParams()
-type IIterUrlHttpInput interface {
+type IHttpInputIterUrl interface {
 	IHttpInput
 	iterUrl(it string) string
 	urlParams() string
 }
 
-// IIterParamsHttpInput
-// url = baseUrl() + iterParams(it)
-type IIterParamsHttpInput interface {
+type IHttpInputIterParams interface {
 	IHttpInput
-	iterParams(it string) string
+	iterUrlParams(it string) string
 }

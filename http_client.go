@@ -28,7 +28,7 @@ var transport = &http.Transport{
 
 var httpClient = &http.Client{Transport: transport}
 
-func doHttpRequest(req *http.Request) Result {
+func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 	var r Result
 
 	if syncConcurrency {
@@ -61,9 +61,10 @@ func doHttpRequest(req *http.Request) Result {
 		r.Ret = ErrIoutilReadAllFailed
 		return r
 	}
-	if !dropHttpRespBody {
+
+	if !dropHttpResp {
 		r.Resp = string(body)
-		if verbose {
+		if detail {
 			logger.Debug("http response", zap.String("body", r.Resp))
 		}
 	}
