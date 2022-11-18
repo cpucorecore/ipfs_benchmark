@@ -28,3 +28,14 @@ func (i IpfsSwarmPeersInput) urlParams() string {
 func (i IpfsSwarmPeersInput) url(_ string) string {
 	return i.baseUrl() + i.urlParams()
 }
+
+var _ IHttpInputRepeat = IpfsIdInput{}
+
+type IpfsIdInput struct {
+	RepeatHttpInput
+}
+
+func (i IpfsIdInput) urlParams() string {
+	// not required: ?arg=<peerid>&format=<value>&peerid-base=b58mh
+	return ""
+}

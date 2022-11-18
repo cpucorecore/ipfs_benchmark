@@ -135,8 +135,17 @@ func loadFid2CidsFromTestFile(testFile string, from, to int) error {
 		return e
 	}
 
-	if to > len(t.ResultsSummary.Results) {
+	if to == 0 {
 		to = len(t.ResultsSummary.Results)
+	} else {
+		if to > len(t.ResultsSummary.Results) {
+			to = len(t.ResultsSummary.Results)
+			if from >= to {
+				logger.Warn("no valid cids in test file by [from, to) index")
+				close(chFid2Cids)
+				return nil
+			}
+		}
 	}
 
 	go func() {
