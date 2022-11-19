@@ -329,7 +329,6 @@ func main() {
 									input.Method = method
 									input.Path = apiPath
 									input.DropHttpResp = dropHttpResp
-									input.TestReport = testReport
 									input.From = from
 									input.To = to
 									input.BlockSize = blockSize

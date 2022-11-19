@@ -6,7 +6,8 @@ import (
 )
 
 type ClusterAddInput struct {
-	IterHttpParams
+	HttpParams
+	Range
 	BlockSize int
 	Replica   int
 	Pin       bool
@@ -18,11 +19,11 @@ const (
 )
 
 func (i ClusterAddInput) info() string {
-	return fmt.Sprintf("%s_bs%d_replica%d_pin-%v", i.IterHttpParams.info(), i.BlockSize, i.Replica, i.Pin)
+	return fmt.Sprintf("%s_%s_bs%d_replica%d_pin-%v", i.HttpParams.info(), i.Range.info(), i.BlockSize, i.Replica, i.Pin)
 }
 
 func (i ClusterAddInput) check() bool {
-	return i.IterHttpParams.check() && i.BlockSize >= MinBlockSize && i.BlockSize <= MaxBlockSize && i.Replica > 0
+	return i.HttpParams.check() && i.Range.check() && i.BlockSize >= MinBlockSize && i.BlockSize <= MaxBlockSize && i.Replica > 0
 }
 
 func (i ClusterAddInput) paramsUrl() string {
