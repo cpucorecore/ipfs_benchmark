@@ -357,7 +357,7 @@ func main() {
 									return loadCidFile(context.String("cid_file"))
 								},
 								Action: func(context *cli.Context) error {
-									var input ClusterPinRmInput
+									var input ClusterUnpinByCidInput
 
 									method = http.MethodDelete
 									apiPath = "/pins/ipfs"
@@ -370,7 +370,7 @@ func main() {
 									input.Method = method
 									input.Path = apiPath
 									input.DropHttpResp = dropHttpResp
-									input.TestReport = testReport
+									input.cidFile = context.String("cid_file")
 									input.From = from
 									input.To = to
 

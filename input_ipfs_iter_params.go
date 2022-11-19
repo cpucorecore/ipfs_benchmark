@@ -42,9 +42,9 @@ type IpfsCatInput struct {
 
 func (i IpfsCatInput) paramsUrl(it string) string {
 	values := url.Values{
-		"arg":      {it},
-		"offset":   {fmt.Sprintf("%d", i.Offset)},
-		"length":   {fmt.Sprintf("%d", i.Length)},
+		"arg":    {it},
+		"offset": {fmt.Sprintf("%d", i.Offset)},
+		//"length":   {fmt.Sprintf("%d", i.Length)},
 		"progress": {fmt.Sprintf("%v", i.Progress)},
 	}
 

@@ -2,6 +2,7 @@ ipfs_benchmark
 *.json
 *.png
 files
-compares
+compare
 tests
 .idea
+cids
