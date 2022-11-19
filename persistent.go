@@ -74,7 +74,7 @@ type TestForLoad struct {
 }
 
 func saveTest(rs ResultsSummary) {
-	name := iInput.name() + "_" + iInput.paramsStr()
+	name := iInput.name() + "_" + iInput.info()
 
 	var ers []ErrResult
 	for _, r := range rs.Results {
@@ -128,24 +128,33 @@ type Fid2Cid struct {
 	Cid string
 }
 
-func loadFid2CidsFromTestFile() error {
-	t, e := loadTest(testFile)
+func adjustTo(itemLen int) bool {
+	if to == 0 {
+		to = itemLen
+	} else {
+		if to > itemLen {
+			to = itemLen
+			if from >= to {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func loadFid2CidsFromTestReport() error {
+	t, e := loadTest(testReport)
 	if e != nil {
 		logger.Error("loadTest err", zap.String("err", e.Error()))
 		return e
 	}
 
-	if to == 0 {
-		to = len(t.ResultsSummary.Results)
-	} else {
-		if to > len(t.ResultsSummary.Results) {
-			to = len(t.ResultsSummary.Results)
-			if from >= to {
-				logger.Warn("no valid cids in test file by [from, to) index")
-				close(chFid2Cids)
-				return nil
-			}
-		}
+	ok := adjustTo(len(t.ResultsSummary.Results))
+	if !ok {
+		logger.Warn("no valid items by [from, to)")
+		close(chFid2Cids)
+		return nil
 	}
 
 	go func() {
@@ -160,17 +169,23 @@ func loadFid2CidsFromTestFile() error {
 	return nil
 }
 
-func loadFileCids(file string) error {
+func loadCidFile(file string) error {
 	bs, e := loadFile(file)
 	if e != nil {
 		return e
 	}
 
-	// TODO reset from, to by cids length
-
 	cids := strings.Split(strings.TrimSpace(string(bs)), "\n")
+
+	ok := adjustTo(len(cids))
+	if !ok {
+		logger.Warn("no valid items by [from, to)")
+		close(chFid2Cids)
+		return nil
+	}
+
 	go func() {
-		for _, cid := range cids {
+		for _, cid := range cids[from:to] {
 			if cid != "" {
 				chFid2Cids <- Fid2Cid{Fid: FakeFid, Cid: cid}
 			}

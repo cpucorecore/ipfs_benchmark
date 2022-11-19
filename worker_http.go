@@ -8,6 +8,10 @@ import (
 func doRepeatHttpInput(pu ParamsUrl) error {
 	url := baseUrl() + pu.paramsUrl()
 
+	if verbose {
+		logger.Debug(url)
+	}
+
 	var countResultsWg sync.WaitGroup
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)

@@ -3,13 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/buger/jsonparser"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/buger/jsonparser"
 )
 
 var postFileUrl string

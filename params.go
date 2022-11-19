@@ -72,7 +72,7 @@ type HttpParams struct {
 }
 
 func baseUrl() string {
-	return "http://" + host + ":" + port + path
+	return "http://" + host + ":" + port + apiPath
 }
 
 func (p HttpParams) name() string {
@@ -102,7 +102,7 @@ func (p RepeatHttpParams) check() bool {
 
 type IterHttpParams struct {
 	HttpParams
-	TestFile string
+	TestReport string
 	Range
 }
 
@@ -111,5 +111,5 @@ func (p IterHttpParams) info() string {
 }
 
 func (p IterHttpParams) check() bool {
-	return p.HttpParams.check() && p.Range.check() && len(p.TestFile) > 0 // TODO check file exist
+	return p.HttpParams.check() && p.Range.check() && len(p.TestReport) > 0 // TODO check file exist
 }

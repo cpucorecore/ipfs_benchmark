@@ -16,7 +16,7 @@ func CompareTests(input CompareParams, testFiles ...string) error {
 	for i, testFile := range testFiles {
 		rs, e := countResultsFile(testFile, input.SortTps, input.SortLatency)
 		if e != nil {
-			logger.Error("countResultsFile err", zap.String("testFile", testFile), zap.String("err", e.Error()))
+			logger.Error("countResultsFile err", zap.String("testReport", testFile), zap.String("err", e.Error()))
 			return e
 		}
 

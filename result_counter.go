@@ -51,12 +51,17 @@ func processResults(in <-chan Result) ResultsSummary {
 
 	latencies := make(plotter.Values, 0, 10000)
 
-	//samples := input.To - input.From
-	//if input.Repeat > 0 {
-	//	samples = input.Goroutines * int(input.Repeat)
-	//}
+	var samples int
+	if repeat > 0 {
+		samples = goroutines * repeat
+	} else {
+		samples = to - from
+	}
 
-	samples := 1 // TODO
+	window := samples / 100
+	if window == 0 {
+		window = 10
+	}
 
 	cnt := 0
 	for {
@@ -66,7 +71,7 @@ func processResults(in <-chan Result) ResultsSummary {
 		}
 
 		cnt++
-		if cnt%100 == 0 {
+		if cnt%window == 0 {
 			errsInfo, _ := json.Marshal(rs.ErrCounter)
 			logger.Info(fmt.Sprintf("progress:%d/%d %g%%, concurrency:%d, errs:%d, ErrCounter:%s",
 				cnt,
