@@ -184,6 +184,25 @@ func main() {
 								},
 							},
 							{
+								Name: "info",
+								Flags: []cli.Flag{
+									&cli.BoolFlag{
+										Name:    "node_detail",
+										Value:   false,
+										Aliases: []string{"nd"},
+									},
+									&cli.BoolFlag{
+										Name:    "cid_detail",
+										Value:   false,
+										Aliases: []string{"cd"},
+									},
+								},
+								Action: func(context *cli.Context) error {
+									clusterInfo(context.Bool("node_detail"), context.Bool("cid_detail"), true)
+									return nil
+								},
+							},
+							{
 								Name: "pin",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
