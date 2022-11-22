@@ -150,7 +150,14 @@ func loadFid2CidsFromTestReport() error {
 		return e
 	}
 
-	ok := adjustTo(len(t.ResultsSummary.Results))
+	fid2Cids := make([]Fid2Cid, 0, len(t.ResultsSummary.Results))
+	for _, r := range t.ResultsSummary.Results {
+		if r.Cid != "" {
+			fid2Cids = append(fid2Cids, Fid2Cid{Fid: r.Fid, Cid: r.Cid})
+		}
+	}
+
+	ok := adjustTo(len(fid2Cids))
 	if !ok {
 		logger.Warn("no valid items by [from, to)")
 		close(chFid2Cids)
@@ -158,10 +165,8 @@ func loadFid2CidsFromTestReport() error {
 	}
 
 	go func() {
-		for _, r := range t.ResultsSummary.Results[from:to] {
-			if r.Cid != "" {
-				chFid2Cids <- Fid2Cid{Fid: r.Fid, Cid: r.Cid}
-			}
+		for _, fie2Cid := range fid2Cids[from:to] {
+			chFid2Cids <- fie2Cid
 		}
 		close(chFid2Cids)
 	}()

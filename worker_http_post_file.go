@@ -93,6 +93,7 @@ func postFiles(input ClusterAddInput) error {
 				}
 
 				r := postFile(fid)
+				r.Fid = fid
 				if r.Ret == 0 {
 					cid, e := jsonparser.GetString([]byte(r.Resp), "cid")
 					if e != nil {
