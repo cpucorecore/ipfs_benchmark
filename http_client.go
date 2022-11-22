@@ -11,8 +11,11 @@ import (
 )
 
 const (
-	ErrHttpClientDoFailed  = -101
-	ErrIoutilReadAllFailed = -102
+	ErrHttpBase            = 100
+	ErrHttpClientDoFailed  = ErrHttpBase + 1
+	ErrIoutilReadAllFailed = ErrHttpBase + 2
+	ErrCloseHttpResp       = ErrHttpBase + 3
+	ErrReadHttpRespTimeout = ErrHttpBase + 4
 )
 
 var transport = &http.Transport{
@@ -54,19 +57,37 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 		return r
 	}
 
-	body, e := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if e != nil {
-		r.Err = e
-		r.Ret = ErrIoutilReadAllFailed
-		return r
+	respBodyChan := make(chan string, 1)
+	go func() {
+		body, readAllErr := ioutil.ReadAll(resp.Body)
+		if readAllErr != nil {
+			r.Ret = ErrIoutilReadAllFailed
+			r.Err = readAllErr
+		}
+		respBodyChan <- string(body)
+	}()
+
+	select {
+	case <-time.After(time.Duration(timeout) * time.Second):
+		{
+			r.Ret = ErrReadHttpRespTimeout
+		}
+	case respBody := <-respBodyChan:
+		{
+			if verbose {
+				logger.Debug("http response", zap.String("body", r.Resp))
+			}
+
+			if !dropHttpResp {
+				r.Resp = respBody
+			}
+		}
 	}
 
-	if !dropHttpResp {
-		r.Resp = string(body)
-		if verbose {
-			logger.Debug("http response", zap.String("body", r.Resp))
-		}
+	e = resp.Body.Close()
+	if e != nil {
+		r.Ret = ErrCloseHttpResp
+		r.Err = e
 	}
 
 	return r

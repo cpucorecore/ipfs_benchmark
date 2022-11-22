@@ -68,6 +68,7 @@ func (p GenFileParams) check() bool {
 type HttpParams struct {
 	Params
 	Host, Port, Method, Path string
+	Timeout                  int
 	DropHttpResp             bool
 }
 
@@ -84,7 +85,8 @@ func (p HttpParams) info() string {
 }
 
 func (p HttpParams) check() bool {
-	return p.Params.check() && len(p.Host) > 0 && len(p.Port) > 0 && len(p.Method) > 0 && len(p.Path) > 0 && p.Path[0] == '/'
+	return p.Params.check() &&
+		len(p.Host) > 0 && len(p.Port) > 0 && len(p.Method) > 0 && len(p.Path) > 0 && p.Path[0] == '/' && p.Timeout > 0
 }
 
 type RepeatHttpParams struct {

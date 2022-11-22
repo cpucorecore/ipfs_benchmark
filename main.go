@@ -45,6 +45,7 @@ var (
 	verbose_, streams, latency, direction bool
 	progress                              bool
 	offset, length                        int
+	timeout                               int
 )
 
 var iInput IInput
@@ -166,6 +167,13 @@ func main() {
 						Aliases:     []string{"p"},
 						Required:    true,
 					},
+					&cli.IntFlag{
+						Name:        "timeout",
+						Usage:       "http request timeout in second",
+						Value:       600,
+						Destination: &timeout,
+						Aliases:     []string{"to"},
+					},
 					&cli.BoolFlag{
 						Name:        "drop_http_resp",
 						Value:       false,
@@ -239,6 +247,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.TestReport = testReport
 											input.From = from
@@ -268,6 +277,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.TestReport = testReport
 											input.From = from
@@ -296,6 +306,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.TestReport = testReport
 											input.From = from
@@ -347,6 +358,7 @@ func main() {
 									input.Port = port
 									input.Method = method
 									input.Path = apiPath
+									input.Timeout = timeout
 									input.DropHttpResp = dropHttpResp
 									input.From = from
 									input.To = to
@@ -388,6 +400,7 @@ func main() {
 									input.Port = port
 									input.Method = method
 									input.Path = apiPath
+									input.Timeout = timeout
 									input.DropHttpResp = dropHttpResp
 									input.cidFile = context.String("cid_file")
 									input.From = from
@@ -458,6 +471,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.Repeat = repeat
 											input.Verbose_ = verbose_
@@ -489,6 +503,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.Repeat = repeat
 
@@ -540,6 +555,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.TestReport = testReport
 											input.From = from
@@ -578,6 +594,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.TestReport = testReport
 											input.From = from
@@ -625,6 +642,7 @@ func main() {
 											input.Port = port
 											input.Method = method
 											input.Path = apiPath
+											input.Timeout = timeout
 											input.DropHttpResp = dropHttpResp
 											input.TestReport = testReport
 											input.From = from
