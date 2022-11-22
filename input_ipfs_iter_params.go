@@ -10,6 +10,10 @@ type IpfsDhtFindprovsInput struct {
 	Verbose_ bool
 }
 
+func (i IpfsDhtFindprovsInput) info() string {
+	return i.IterHttpParams.info() + "_" + i.Tag
+}
+
 func (i IpfsDhtFindprovsInput) paramsUrl(it string) string {
 	values := url.Values{
 		"arg":     {it},
@@ -22,6 +26,10 @@ func (i IpfsDhtFindprovsInput) paramsUrl(it string) string {
 type IpfsDagStatInput struct {
 	IterHttpParams
 	Progress bool
+}
+
+func (i IpfsDagStatInput) info() string {
+	return i.IterHttpParams.info() + "_" + i.Tag
 }
 
 func (i IpfsDagStatInput) paramsUrl(it string) string {
@@ -38,6 +46,10 @@ type IpfsCatInput struct {
 	Offset   int
 	Length   int
 	Progress bool
+}
+
+func (i IpfsCatInput) info() string {
+	return i.IterHttpParams.info() + "_" + i.Tag
 }
 
 func (i IpfsCatInput) paramsUrl(it string) string {

@@ -68,7 +68,7 @@ type IpfsInfo struct {
 }
 
 func ipfsId() string {
-	ipfsIdUrl := getIpfsUrl(host, "/api/v0/id")
+	ipfsIdUrl := getIpfsUrl(p.Host, "/api/v0/id")
 	resp := callApi(http.MethodPost, ipfsIdUrl)
 	if resp == nil {
 		return ""
@@ -94,7 +94,7 @@ type SwarmPeers struct {
 }
 
 func ipfsSwarmPeers() (swarmPeers SwarmPeers) {
-	ipfsSwarmPeersUrl := getIpfsUrl(host, "/api/v0/swarm/peers")
+	ipfsSwarmPeersUrl := getIpfsUrl(p.Host, "/api/v0/swarm/peers")
 	resp := callApi(http.MethodPost, ipfsSwarmPeersUrl)
 	if resp == nil {
 		return
@@ -113,7 +113,7 @@ func ipfsSwarmPeers() (swarmPeers SwarmPeers) {
 
 	id := ipfsId()
 
-	swarmPeers.Peers = append(swarmPeers.Peers, Peer{Addr: host, Peer: id})
+	swarmPeers.Peers = append(swarmPeers.Peers, Peer{Addr: p.Host, Peer: id})
 
 	return
 }
@@ -155,7 +155,7 @@ func clusterPins(cidDetail bool) {
 	//{"cid":"QmXHFRWyW49vNzUrEo3Rr4wiU5LemBKYMCaG8gjB7oq7RN","name":"","allocations":["12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm","12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4","12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH"],"origins":[],"created":"2022-11-21T03:07:35Z","metadata":null,"peer_map":{"12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi","ipfs_peer_addresses":["/ip4/192.168.0.87/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi"],"status":"pinned","timestamp":"2022-11-21T03:07:35Z","error":"","attempt_count":0,"priority_pin":false},"12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC","ipfs_peer_addresses":["/ip4/192.168.0.85/tcp/4001/p2p/12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC"],"status":"pinned","timestamp":"2022-11-21T11:07:35+08:00","error":"","attempt_count":0,"priority_pin":false},"12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB","ipfs_peer_addresses":["/ip4/192.168.0.86/tcp/4001/p2p/12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB"],"status":"pinned","timestamp":"2022-11-21T03:07:35Z","error":"","attempt_count":0,"priority_pin":false}}}
 	//{"cid":"QmahnmYLjUWX8ek8oRMwmTeg7WnMY61foQdPf18VwWfaLY","name":"","allocations":["12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm","12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4","12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH"],"origins":[],"created":"2022-11-21T02:53:09Z","metadata":null,"peer_map":{"12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi","ipfs_peer_addresses":["/ip4/192.168.0.87/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi"],"status":"pinned","timestamp":"2022-11-21T02:53:09Z","error":"","attempt_count":0,"priority_pin":false},"12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC","ipfs_peer_addresses":["/ip4/192.168.0.85/tcp/4001/p2p/12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC"],"status":"pinned","timestamp":"2022-11-21T10:53:09+08:00","error":"","attempt_count":0,"priority_pin":false},"12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB","ipfs_peer_addresses":["/ip4/192.168.0.86/tcp/4001/p2p/12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB"],"status":"pinned","timestamp":"2022-11-21T02:53:09Z","error":"","attempt_count":0,"priority_pin":false}}}
 
-	u := getClusterUrl(host, "/pins?local=false")
+	u := getClusterUrl(p.Host, "/pins?local=false")
 	resp := callApi(http.MethodGet, u)
 	if resp == nil {
 		return
@@ -225,7 +225,7 @@ func clusterInfo(nodeDetail, cidDetail, print bool) (swarmPeers SwarmPeers, repo
 }
 
 func clusterGc() {
-	clusterGcUrl := getClusterUrl(host, "/ipfs/gc?local=false")
+	clusterGcUrl := getClusterUrl(p.Host, "/ipfs/gc?local=false")
 
 	st := time.Now()
 	logger.Info(fmt.Sprintf("gc started at: %s", st.String()))

@@ -38,7 +38,7 @@ type Params struct {
 }
 
 func (p Params) info() string {
-	return fmt.Sprintf("g%d_s-%v", p.Goroutines, p.SyncConcurrency)
+	return fmt.Sprintf("g%d_sc-%v", p.Goroutines, p.SyncConcurrency)
 }
 
 func (p Params) check() bool {
@@ -70,10 +70,11 @@ type HttpParams struct {
 	Host, Port, Method, Path string
 	Timeout                  int
 	DropHttpResp             bool
+	Tag                      string
 }
 
 func baseUrl() string {
-	return "http://" + host + ":" + port + apiPath
+	return "http://" + p.Host + ":" + p.Port + p.Path
 }
 
 func (p HttpParams) name() string {

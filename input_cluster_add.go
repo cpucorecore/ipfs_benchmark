@@ -5,6 +5,11 @@ import (
 	"net/url"
 )
 
+const (
+	MinBlockSize = 1024 * 256
+	MaxBlockSize = 1024 * 1024
+)
+
 type ClusterAddInput struct {
 	HttpParams
 	Range
@@ -13,13 +18,8 @@ type ClusterAddInput struct {
 	Pin       bool
 }
 
-const (
-	MinBlockSize = 1024 * 256
-	MaxBlockSize = 1024 * 1024
-)
-
 func (i ClusterAddInput) info() string {
-	return fmt.Sprintf("%s_%s_bs%d_replica%d_pin-%v", i.HttpParams.info(), i.Range.info(), i.BlockSize, i.Replica, i.Pin)
+	return fmt.Sprintf("%s_%s_bs%d_replica%d_pin-%v_%s", i.HttpParams.info(), i.Range.info(), i.BlockSize, i.Replica, i.Pin, i.Tag)
 }
 
 func (i ClusterAddInput) check() bool {

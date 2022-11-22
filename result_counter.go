@@ -53,7 +53,7 @@ func processResults(in <-chan Result) ResultsSummary {
 
 	var samples int
 	if repeat > 0 {
-		samples = goroutines * repeat
+		samples = p.Goroutines * repeat
 	} else {
 		samples = to - from
 	}
@@ -102,7 +102,7 @@ func processResults(in <-chan Result) ResultsSummary {
 			latencies = append(latencies, float64(r.Latency))
 		}
 
-		if verbose {
+		if p.Verbose {
 			if r.Ret != 0 {
 			} else {
 				logger.Debug(

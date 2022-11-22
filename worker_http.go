@@ -8,7 +8,7 @@ import (
 func doRepeatHttpInput(pu ParamsUrl) error {
 	url := baseUrl() + pu.paramsUrl()
 
-	if verbose {
+	if p.Verbose {
 		logger.Debug(url)
 	}
 
@@ -17,17 +17,17 @@ func doRepeatHttpInput(pu ParamsUrl) error {
 	go countResults(&countResultsWg)
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
-	for i := 0; i < goroutines; i++ {
+	wg.Add(p.Goroutines)
+	for i := 0; i < p.Goroutines; i++ {
 		go func() {
 			defer wg.Done()
 
-			req, _ := http.NewRequest(method, url, nil)
+			req, _ := http.NewRequest(p.Method, url, nil)
 
 			c := 0
 			for c < repeat {
 				c++
-				r := doHttpRequest(req, dropHttpResp)
+				r := doHttpRequest(req, p.DropHttpResp)
 				chResults <- r
 			}
 		}()

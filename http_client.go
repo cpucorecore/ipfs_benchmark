@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	ErrHttpBase            = 100
-	ErrHttpClientDoFailed  = ErrHttpBase + 1
-	ErrIoutilReadAllFailed = ErrHttpBase + 2
-	ErrCloseHttpResp       = ErrHttpBase + 3
-	ErrReadHttpRespTimeout = ErrHttpBase + 4
+	ErrCreateRequest       = ErrCategoryHttp + 1
+	ErrHttpClientDoFailed  = ErrCategoryHttp + 2
+	ErrIoutilReadAllFailed = ErrCategoryHttp + 3
+	ErrCloseHttpResp       = ErrCategoryHttp + 4
+	ErrReadHttpRespTimeout = ErrCategoryHttp + 5
 )
 
 var transport = &http.Transport{
@@ -34,18 +34,18 @@ var httpClient = &http.Client{Transport: transport}
 func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 	var r Result
 
-	if syncConcurrency {
+	if p.SyncConcurrency {
 		atomic.AddInt32(&concurrency, 1)
 		r.Concurrency = concurrency
 	} else {
-		r.Concurrency = int32(goroutines)
+		r.Concurrency = int32(p.Goroutines)
 	}
 	r.S = time.Now()
 
 	resp, e := httpClient.Do(req)
 
 	r.E = time.Now()
-	if syncConcurrency {
+	if p.SyncConcurrency {
 		atomic.AddInt32(&concurrency, -1)
 	}
 
@@ -68,13 +68,13 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 	}()
 
 	select {
-	case <-time.After(time.Duration(timeout) * time.Second):
+	case <-time.After(time.Duration(p.Timeout) * time.Second):
 		{
 			r.Ret = ErrReadHttpRespTimeout
 		}
 	case respBody := <-respBodyChan:
 		{
-			if verbose {
+			if p.Verbose {
 				logger.Debug("http response", zap.String("body", r.Resp))
 			}
 

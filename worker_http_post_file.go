@@ -15,6 +15,10 @@ import (
 
 var postFileUrl string
 
+const (
+	ErrJsonParse = ErrCategoryJson + 1
+)
+
 func createPostFileRequest(fid int) (*http.Request, error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -56,7 +60,7 @@ func createPostFileRequest(fid int) (*http.Request, error) {
 func postFile(fid int) Result {
 	req, e := createPostFileRequest(fid)
 	if e != nil {
-		return Result{Fid: fid, Ret: -1, Err: e}
+		return Result{Fid: fid, Ret: ErrCreateRequest, Err: e}
 	}
 
 	return doHttpRequest(req, false)
@@ -68,7 +72,7 @@ func postFiles(input ClusterAddInput) error {
 	go countResults(&countResultsWg)
 
 	postFileUrl = baseUrl() + input.paramsUrl()
-	if verbose {
+	if p.Verbose {
 		logger.Debug(postFileUrl)
 	}
 
@@ -81,8 +85,8 @@ func postFiles(input ClusterAddInput) error {
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
-	for i := 0; i < goroutines; i++ {
+	wg.Add(p.Goroutines)
+	for i := 0; i < p.Goroutines; i++ {
 		go func() {
 			defer wg.Done()
 
@@ -97,7 +101,7 @@ func postFiles(input ClusterAddInput) error {
 				if r.Ret == 0 {
 					cid, e := jsonparser.GetString([]byte(r.Resp), "cid")
 					if e != nil {
-						r.Ret = -201
+						r.Ret = ErrCategoryJson
 						r.Err = e
 					}
 					r.Cid = cid

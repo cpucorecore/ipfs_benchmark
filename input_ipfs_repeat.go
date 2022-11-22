@@ -13,6 +13,10 @@ type IpfsSwarmPeersInput struct {
 	Direction bool
 }
 
+func (i IpfsSwarmPeersInput) info() string {
+	return i.RepeatHttpParams.info() + "_" + i.Tag
+}
+
 func (i IpfsSwarmPeersInput) paramsUrl() string {
 	values := url.Values{
 		"Verbose":   {fmt.Sprintf("%v", i.Verbose_)},
@@ -25,6 +29,10 @@ func (i IpfsSwarmPeersInput) paramsUrl() string {
 
 type IpfsIdInput struct {
 	RepeatHttpParams
+}
+
+func (i IpfsIdInput) info() string {
+	return i.RepeatHttpParams.info() + "_" + i.Tag
 }
 
 func (i IpfsIdInput) paramsUrl() string {

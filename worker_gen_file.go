@@ -15,6 +15,12 @@ const (
 	DeviceURandom = "/dev/urandom"
 )
 
+const (
+	ErrCreateFile = ErrCategoryFile + 1
+	ErrReadFile   = ErrCategoryFile + 2
+	ErrWriteFile  = ErrCategoryFile + 3
+)
+
 func genFiles(input GenFileParams) error {
 	chFids := make(chan int, 10000)
 	go func() {
@@ -29,8 +35,8 @@ func genFiles(input GenFileParams) error {
 	go countResults(&countResultsWg)
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
-	for i := 0; i < goroutines; i++ {
+	wg.Add(p.Goroutines)
+	for i := 0; i < p.Goroutines; i++ {
 		go func() {
 			defer wg.Done()
 
@@ -57,7 +63,7 @@ func genFiles(input GenFileParams) error {
 				if e != nil {
 					logger.Error("create file err", zap.String("file", fp), zap.String("err", e.Error()))
 
-					r.Ret = -1
+					r.Ret = ErrCreateFile
 					r.Err = e
 					chResults <- r
 
@@ -66,11 +72,11 @@ func genFiles(input GenFileParams) error {
 
 				var currentSize, rn, wn int
 
-				if syncConcurrency {
+				if p.SyncConcurrency {
 					atomic.AddInt32(&concurrency, 1)
 					r.Concurrency = concurrency
 				} else {
-					r.Concurrency = int32(goroutines)
+					r.Concurrency = int32(p.Goroutines)
 				}
 
 				r.S = time.Now()
@@ -79,7 +85,7 @@ func genFiles(input GenFileParams) error {
 					if e != nil {
 						logger.Error("read file err", zap.String("err", e.Error()))
 
-						r.Ret = -2
+						r.Ret = ErrReadFile
 						r.Err = e
 						chResults <- r
 						fd.Close()
@@ -91,7 +97,7 @@ func genFiles(input GenFileParams) error {
 					if e != nil {
 						logger.Error("write file err", zap.String("err", e.Error()))
 
-						r.Ret = -3
+						r.Ret = ErrWriteFile
 						r.Err = e
 						chResults <- r
 						fd.Close()
@@ -104,14 +110,14 @@ func genFiles(input GenFileParams) error {
 				fd.Close()
 				r.E = time.Now()
 
-				if syncConcurrency {
+				if p.SyncConcurrency {
 					atomic.AddInt32(&concurrency, -1)
 				}
 
 				r.Latency = r.E.Sub(r.S).Microseconds()
 
 				chResults <- r
-				if verbose {
+				if p.Verbose {
 					logger.Debug("file generated", zap.String("file", fp))
 				}
 			}

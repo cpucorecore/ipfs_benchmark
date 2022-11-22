@@ -11,7 +11,7 @@ type ClusterPinAddInput struct {
 }
 
 func (i ClusterPinAddInput) info() string {
-	return fmt.Sprintf("%s_replica%d", i.IterHttpParams.info(), i.Replica)
+	return fmt.Sprintf("%s_replica%d_%s", i.IterHttpParams.info(), i.Replica, i.Tag)
 }
 
 func (i ClusterPinAddInput) check() bool {
@@ -34,12 +34,20 @@ type ClusterPinRmInput struct {
 	IterHttpParams
 }
 
+func (i ClusterPinRmInput) info() string {
+	return i.IterHttpParams.info() + "_" + i.Tag
+}
+
 func (i ClusterPinRmInput) paramsUrl() string {
 	return ""
 }
 
 type ClusterPinGetInput struct {
 	IterHttpParams
+}
+
+func (i ClusterPinGetInput) info() string {
+	return i.IterHttpParams.info() + "_" + i.Tag
 }
 
 func (i ClusterPinGetInput) paramsUrl() string {
@@ -53,7 +61,7 @@ type ClusterUnpinByCidInput struct {
 }
 
 func (i ClusterUnpinByCidInput) info() string {
-	return fmt.Sprintf("%s_%s", i.HttpParams.info(), i.Range.info())
+	return fmt.Sprintf("%s_%s_%s", i.HttpParams.info(), i.Range.info(), i.Tag)
 }
 
 func (i ClusterUnpinByCidInput) check() bool {

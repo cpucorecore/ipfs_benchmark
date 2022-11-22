@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 	"os"
 
@@ -26,29 +25,26 @@ func init() {
 	}
 }
 
-var ErrCheckFailed = errors.New("check failed")
-
+// common params
 var (
-	tag                                   string // compare
-	sortTps, sortLatency                  bool   // compare
-	size                                  int    // gen_file
-	verbose                               bool
-	goroutines                            int
-	syncConcurrency                       bool
-	from, to, repeat                      int
-	host, port, method, apiPath           string
-	dropHttpResp                          bool
-	testReport                            string
-	replica                               int
-	pin                                   bool
-	blockSize                             int
-	verbose_, streams, latency, direction bool
-	progress                              bool
-	offset, length                        int
-	timeout                               int
+	iInput IInput
+
+	p                   HttpParams
+	from, to, repeat    int
+	testReport, cidFile string
 )
 
-var iInput IInput
+// special params
+var (
+	sortTps, sortLatency                  bool // compare
+	size                                  int  // gen_file
+	replica                               int  // cluster add/ cluster pin add
+	pin                                   bool // cluster add
+	blockSize                             int  // cluster add
+	verbose_, streams, latency, direction bool // ipfs swarm peers
+	progress                              bool // ipfs dag stat
+	offset, length                        int  // ipfs cat
+)
 
 func main() {
 	app := &cli.App{
@@ -57,19 +53,19 @@ func main() {
 			&cli.BoolFlag{
 				Name:        "verbose",
 				Value:       false,
-				Destination: &verbose,
+				Destination: &p.Verbose,
 				Aliases:     []string{"v"},
 			},
 			&cli.IntFlag{
 				Name:        "goroutines",
 				Value:       1,
-				Destination: &goroutines,
+				Destination: &p.Goroutines,
 				Aliases:     []string{"g"},
 			},
 			&cli.BoolFlag{
 				Name:        "sync_concurrency",
 				Value:       true,
-				Destination: &syncConcurrency,
+				Destination: &p.SyncConcurrency,
 				Aliases:     []string{"sc"},
 			},
 			&cli.IntFlag{
@@ -100,9 +96,9 @@ func main() {
 						Action: func(context *cli.Context) error {
 							var input GenFileParams
 
-							input.Verbose = verbose
-							input.Goroutines = goroutines
-							input.SyncConcurrency = syncConcurrency
+							input.Verbose = p.Verbose                 // reuse params
+							input.Goroutines = p.Goroutines           // reuse params
+							input.SyncConcurrency = p.SyncConcurrency // reuse params
 							input.From = from
 							input.To = to
 							input.Size = size
@@ -120,7 +116,7 @@ func main() {
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:        "tag", // TODO remove this flag, instead by infos from [test files...]
-								Destination: &tag,
+								Destination: &p.Tag,
 								Required:    true,
 							},
 							&cli.BoolFlag{
@@ -139,7 +135,7 @@ func main() {
 						Action: func(context *cli.Context) error {
 							var input CompareParams
 
-							input.Tag = tag
+							input.Tag = p.Tag // reuse params
 							input.SortTps = sortTps
 							input.SortLatency = sortLatency
 
@@ -158,12 +154,12 @@ func main() {
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "host",
-						Destination: &host,
+						Destination: &p.Host,
 						Required:    true,
 					},
 					&cli.StringFlag{
 						Name:        "port",
-						Destination: &port,
+						Destination: &p.Port,
 						Aliases:     []string{"p"},
 						Required:    true,
 					},
@@ -171,13 +167,19 @@ func main() {
 						Name:        "timeout",
 						Usage:       "http request timeout in second",
 						Value:       600,
-						Destination: &timeout,
+						Destination: &p.Timeout,
 					},
 					&cli.BoolFlag{
 						Name:        "drop_http_resp",
 						Value:       false,
-						Destination: &dropHttpResp,
+						Destination: &p.DropHttpResp,
 						Aliases:     []string{"d"},
+					},
+					&cli.StringFlag{
+						Name:        "tag",
+						Usage:       "[crdt/raft], [repo_size-100G]",
+						Destination: &p.Tag,
+						Required:    true,
 					},
 				},
 				Subcommands: []*cli.Command{
@@ -234,20 +236,11 @@ func main() {
 											},
 										},
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/pins/ipfs"
+
 											var input ClusterPinAddInput
-
-											method = http.MethodPost
-											apiPath = "/pins/ipfs"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.TestReport = testReport
 											input.From = from
 											input.To = to
@@ -264,20 +257,11 @@ func main() {
 									{
 										Name: "rm",
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodDelete
+											p.Path = "/pins/ipfs"
+
 											var input ClusterPinRmInput
-
-											method = http.MethodDelete
-											apiPath = "/pins/ipfs"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.TestReport = testReport
 											input.From = from
 											input.To = to
@@ -293,20 +277,11 @@ func main() {
 									{
 										Name: "get",
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodGet
+											p.Path = "/pins"
+
 											var input ClusterPinGetInput
-
-											method = http.MethodGet
-											apiPath = "/pins"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.TestReport = testReport
 											input.From = from
 											input.To = to
@@ -345,20 +320,11 @@ func main() {
 									},
 								},
 								Action: func(context *cli.Context) error {
+									p.Method = http.MethodPost
+									p.Path = "/add"
+
 									var input ClusterAddInput
-
-									method = http.MethodPost
-									apiPath = "/add"
-
-									input.Verbose = verbose
-									input.Goroutines = goroutines
-									input.SyncConcurrency = syncConcurrency
-									input.Host = host
-									input.Port = port
-									input.Method = method
-									input.Path = apiPath
-									input.Timeout = timeout
-									input.DropHttpResp = dropHttpResp
+									input.HttpParams = p
 									input.From = from
 									input.To = to
 									input.BlockSize = blockSize
@@ -378,30 +344,22 @@ func main() {
 								Usage: "unpin by cids file",
 								Flags: []cli.Flag{
 									&cli.StringFlag{
-										Name:     "cid_file",
-										Aliases:  []string{"c"},
-										Required: true,
+										Name:        "cid_file",
+										Destination: &cidFile,
+										Aliases:     []string{"c"},
+										Required:    true,
 									},
 								},
 								Before: func(context *cli.Context) error {
 									return loadCidFile(context.String("cid_file"))
 								},
 								Action: func(context *cli.Context) error {
+									p.Method = http.MethodDelete
+									p.Path = "/pins/ipfs"
+
 									var input ClusterUnpinByCidInput
-
-									method = http.MethodDelete
-									apiPath = "/pins/ipfs"
-
-									input.Verbose = verbose
-									input.Goroutines = goroutines
-									input.SyncConcurrency = syncConcurrency
-									input.Host = host
-									input.Port = port
-									input.Method = method
-									input.Path = apiPath
-									input.Timeout = timeout
-									input.DropHttpResp = dropHttpResp
-									input.cidFile = context.String("cid_file")
+									input.HttpParams = p
+									input.cidFile = cidFile
 									input.From = from
 									input.To = to
 
@@ -458,20 +416,11 @@ func main() {
 											},
 										},
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/api/v0/swarm/peers"
+
 											var input IpfsSwarmPeersInput
-
-											method = http.MethodPost
-											apiPath = "/api/v0/swarm/peers"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.Repeat = repeat
 											input.Verbose_ = verbose_
 											input.Streams = streams
@@ -490,20 +439,11 @@ func main() {
 										// curl -X POST "http://127.0.0.1:5001/api/v0/id?arg=<peerid>&format=<value>&peerid-base=b58mh"
 										Name: "id",
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/api/v0/id"
+
 											var input IpfsIdInput
-
-											method = http.MethodPost
-											apiPath = "/api/v0/id"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.Repeat = repeat
 
 											if !input.check() {
@@ -542,20 +482,11 @@ func main() {
 											},
 										},
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/api/v0/dht/findprovs"
+
 											var input IpfsDhtFindprovsInput
-
-											method = http.MethodPost
-											apiPath = "/api/v0/dht/findprovs"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.TestReport = testReport
 											input.From = from
 											input.To = to
@@ -581,20 +512,11 @@ func main() {
 											},
 										},
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/api/v0/dag/stat"
+
 											var input IpfsDagStatInput
-
-											method = http.MethodPost
-											apiPath = "/api/v0/dag/stat"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.TestReport = testReport
 											input.From = from
 											input.To = to
@@ -617,11 +539,11 @@ func main() {
 												Aliases: []string{"o"},
 												Value:   0,
 											},
-											&cli.IntFlag{
-												Name:    "length",
-												Aliases: []string{"l"},
-												Value:   0, // TODO check api
-											},
+											//&cli.IntFlag{
+											//	Name:    "length",
+											//	Aliases: []string{"l"},
+											//	Value:   0, // TODO check api
+											//},
 											&cli.BoolFlag{
 												Name:    "progress",
 												Aliases: []string{"prg"},
@@ -629,20 +551,11 @@ func main() {
 											},
 										},
 										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/api/v0/cat"
+
 											var input IpfsCatInput
-
-											method = http.MethodPost
-											apiPath = "/api/v0/cat"
-
-											input.Verbose = verbose
-											input.Goroutines = goroutines
-											input.SyncConcurrency = syncConcurrency
-											input.Host = host
-											input.Port = port
-											input.Method = method
-											input.Path = apiPath
-											input.Timeout = timeout
-											input.DropHttpResp = dropHttpResp
+											input.HttpParams = p
 											input.TestReport = testReport
 											input.From = from
 											input.To = to
