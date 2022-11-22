@@ -172,7 +172,6 @@ func main() {
 						Usage:       "http request timeout in second",
 						Value:       600,
 						Destination: &timeout,
-						Aliases:     []string{"to"},
 					},
 					&cli.BoolFlag{
 						Name:        "drop_http_resp",
