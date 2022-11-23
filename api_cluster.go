@@ -22,6 +22,10 @@ func getClusterUrl(ip, apiPath string) string {
 }
 
 func callApi(method, url string) []byte {
+	if p.Verbose {
+		logger.Debug(url)
+	}
+	
 	req, e := http.NewRequest(method, url, nil)
 	if e != nil {
 		logger.Error("new request err")
