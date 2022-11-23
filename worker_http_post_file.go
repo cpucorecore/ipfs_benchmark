@@ -68,6 +68,16 @@ func postFile(fid int) Result {
 	for retry < p.MaxRetry {
 		r = doHttpRequest(req, false)
 		if r.Ret == 0 {
+			cid, parseJsonErr := jsonparser.GetString([]byte(r.Resp), "cid")
+			if parseJsonErr != nil {
+				r.Ret = ErrJsonParse
+				r.Err = parseJsonErr
+				retry++
+				logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+				continue
+			}
+
+			r.Cid = cid
 			return r
 		} else {
 			retry++
@@ -75,6 +85,7 @@ func postFile(fid int) Result {
 		}
 	}
 
+	r.Fid = fid
 	return r
 }
 
@@ -108,18 +119,7 @@ func postFiles(input ClusterAddInput) error {
 					return
 				}
 
-				r := postFile(fid)
-				r.Fid = fid
-				if r.Ret == 0 {
-					cid, e := jsonparser.GetString([]byte(r.Resp), "cid")
-					if e != nil {
-						r.Ret = ErrJsonParse
-						r.Err = e
-					}
-					r.Cid = cid
-				}
-
-				chResults <- r
+				chResults <- postFile(fid)
 			}
 		}()
 	}
