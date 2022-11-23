@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
@@ -84,7 +83,7 @@ func main() {
 			{
 				Name: "version",
 				Action: func(context *cli.Context) error {
-					fmt.Println(Version)
+					version()
 					return nil
 				},
 			},
