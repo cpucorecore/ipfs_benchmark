@@ -96,6 +96,11 @@ func processResults(in <-chan Result) ResultsSummary {
 		if r.Ret != 0 {
 			rs.Errs++
 			rs.ErrCounter[r.Ret]++
+		} else if len(p.Path) > 0 && r.HttpStatusCode != 200 {
+			rs.Errs++
+			rs.ErrCounter[r.Ret]++
+
+			logger.Debug(fmt.Sprintf("result: %+v", r))
 		} else {
 			rs.ConcurrencySum += uint64(r.Concurrency)
 			rs.TPSes = append(rs.TPSes, float64(r.Concurrency)*(float64(MillisecondPerSecond*MicrosecondPerMillisecond)/float64(r.Latency)))

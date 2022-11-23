@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -80,6 +81,13 @@ func main() {
 			},
 		},
 		Commands: []*cli.Command{
+			{
+				Name: "version",
+				Action: func(context *cli.Context) error {
+					fmt.Println(Version)
+					return nil
+				},
+			},
 			{
 				Name: "tool",
 				Subcommands: []*cli.Command{

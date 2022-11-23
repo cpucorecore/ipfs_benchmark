@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Range struct {
 	From, To int
@@ -86,6 +89,12 @@ func (p HttpParams) info() string {
 }
 
 func (p HttpParams) check() bool {
+	if len(p.Path) > 0 {
+		if strings.Count(p.Path, "/api/v0") > 0 && p.Port != "5001" {
+			logger.Warn("default ipfs api port is 5001s")
+		}
+	}
+
 	return p.Params.check() &&
 		len(p.Host) > 0 && len(p.Port) > 0 && len(p.Method) > 0 && len(p.Path) > 0 && p.Path[0] == '/' && p.Timeout > 0
 }

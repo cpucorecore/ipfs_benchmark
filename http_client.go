@@ -57,6 +57,8 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 		return r
 	}
 
+	r.HttpStatusCode = resp.StatusCode
+
 	respBodyChan := make(chan string, 1)
 	go func() {
 		body, readAllErr := ioutil.ReadAll(resp.Body)
