@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -69,6 +70,7 @@ func postFile(fid int) Result {
 			r.Fid = fid
 			r.Ret = ErrCreateRequest
 			r.Err = e
+			time.Sleep(time.Second * 2)
 			continue
 		}
 
@@ -80,6 +82,7 @@ func postFile(fid int) Result {
 				r.Ret = ErrJsonParse
 				r.Err = parseJsonErr
 				logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+				time.Sleep(time.Second * 2)
 				continue
 			}
 
@@ -87,6 +90,7 @@ func postFile(fid int) Result {
 			return r
 		} else {
 			logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+			time.Sleep(time.Second * 2)
 			continue
 		}
 	}
