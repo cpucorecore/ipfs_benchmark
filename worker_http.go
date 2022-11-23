@@ -22,7 +22,7 @@ func doRepeatHttpInput(pu ParamsUrl) error {
 		go func() {
 			defer wg.Done()
 
-			req, _ := http.NewRequest(p.Method, url, nil)
+			req, _ := http.NewRequest(p.Method, url, nil) // in for loop because tpc keepalive
 
 			c := 0
 			for c < repeat {
