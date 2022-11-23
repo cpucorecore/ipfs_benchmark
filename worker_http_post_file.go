@@ -58,21 +58,27 @@ func createPostFileRequest(fid int) (*http.Request, error) {
 }
 
 func postFile(fid int) Result {
-	req, e := createPostFileRequest(fid)
-	if e != nil {
-		return Result{Fid: fid, Ret: ErrCreateRequest, Err: e}
-	}
-
 	retry := 0
 	var r Result
+
 	for retry < p.MaxRetry {
+		retry++
+
+		req, e := createPostFileRequest(fid)
+		if e != nil {
+			r.Fid = fid
+			r.Ret = ErrCreateRequest
+			r.Err = e
+			continue
+		}
+
 		r = doHttpRequest(req, false)
+		r.Fid = fid
 		if r.Ret == 0 {
 			cid, parseJsonErr := jsonparser.GetString([]byte(r.Resp), "cid")
 			if parseJsonErr != nil {
 				r.Ret = ErrJsonParse
 				r.Err = parseJsonErr
-				retry++
 				logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
 				continue
 			}
@@ -80,12 +86,11 @@ func postFile(fid int) Result {
 			r.Cid = cid
 			return r
 		} else {
-			retry++
 			logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+			continue
 		}
 	}
 
-	r.Fid = fid
 	return r
 }
 

@@ -5,7 +5,7 @@
 ./ipfs_benchmark api --host 127.0.0.1 -p 9094 cluster gc
 
 # cluster add
-./ipfs_benchmark --from 0 --to 100 -g 10 --sc=true api --host 127.0.0.1 -p 9094 -d=false --tag crdt cluster add --bs $((1024*1024)) -r 3 -p
+./ipfs_benchmark --from 0 --to 10000 -g 3 --sc=true api --host 192.168.0.87 -p 9094 --max_retry 6 --timeout 300 -d=false --tag crdt_100G cluster add --bs $((1024*1024)) -r 3 -p
 
 # cluster pin get
 ./ipfs_benchmark --from 0 --to 100 -g 1 --sc=true api --host 127.0.0.1 -p 9094 -d=false --tag crdt cluster pin --tr tests/report/cluster_add_g10_sc-true_from0_to100_bs1048576_replica3_pin-true_crdt.json get
