@@ -224,7 +224,7 @@ func clusterInfo(nodeDetail, cidDetail, print bool) (swarmPeers SwarmPeers, repo
 	return
 }
 
-func clusterGc() {
+func clusterGc() time.Duration {
 	clusterGcUrl := getClusterUrl(p.Host, "/ipfs/gc?local=false")
 
 	st := time.Now()
@@ -236,20 +236,28 @@ func clusterGc() {
 	logger.Info(fmt.Sprintf("gc finished at: %s", et.String()))
 
 	logger.Info(fmt.Sprintf("gc time used:%s", et.Sub(st).String()))
+
+	return et.Sub(st)
 }
 
 func gc() error {
-	ps1, rs1 := clusterInfo(true, false, true)
-	clusterGc()
-	ps2, rs2 := clusterInfo(true, false, true)
+	sp1, rs1 := clusterInfo(true, false, true)
+	d := clusterGc()
+	sp2, rs2 := clusterInfo(true, false, true)
 
-	for i := range ps1.Peers {
-		for j := range ps2.Peers {
-			if ps1.Peers[i].Addr == ps2.Peers[i].Addr {
-				logger.Info(fmt.Sprintf("node[%s] gc repo size:%02f, objects:%d",
-					ps1.Peers[i].Addr,
-					float32(rs1[i].RepoSize-rs2[j].RepoSize)/float32(GB),
-					rs1[i].NumObjects-rs2[j].NumObjects),
+	for i := range sp1.Peers {
+		for j := range sp2.Peers {
+			if sp1.Peers[i].Addr == sp2.Peers[i].Addr {
+				s := float64(rs1[i].RepoSize-rs2[j].RepoSize) / float64(GB)
+				os := rs1[i].NumObjects - rs2[j].NumObjects
+				logger.Info(
+					fmt.Sprintf("node[%s] gc repo size:%02f, objects:%d, gc speed: %02fGB/s, %02fObjects/s",
+						sp1.Peers[i].Addr,
+						s,
+						os,
+						s/d.Seconds(),
+						float64(os)/d.Seconds(),
+					),
 				)
 			}
 		}
