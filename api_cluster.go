@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
@@ -23,9 +24,9 @@ func getClusterUrl(ip, apiPath string) string {
 
 func callApi(method, url string) []byte {
 	if p.Verbose {
-		logger.Debug(url)
+		logger.Debug(fmt.Sprintf("callApi"), zap.String("method", method), zap.String("url", url))
 	}
-	
+
 	req, e := http.NewRequest(method, url, nil)
 	if e != nil {
 		logger.Error("new request err")
