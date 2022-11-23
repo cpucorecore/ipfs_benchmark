@@ -70,6 +70,7 @@ func postFile(fid int) Result {
 			r.Fid = fid
 			r.Ret = ErrCreateRequest
 			r.Err = e
+			logger.Info(fmt.Sprintf("create request err, fid:%d, retry:%d", r.Fid, retry))
 			time.Sleep(time.Second * 2 * time.Duration(retry))
 			continue
 		}
@@ -81,7 +82,11 @@ func postFile(fid int) Result {
 			if parseJsonErr != nil {
 				r.Ret = ErrJsonParse
 				r.Err = parseJsonErr
-				logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+				if r.Err == nil {
+					logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d", r.Fid, r.Ret, r.Resp, retry))
+				} else {
+					logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
+				}
 				time.Sleep(time.Second * 2 * time.Duration(retry))
 				continue
 			}
@@ -89,7 +94,11 @@ func postFile(fid int) Result {
 			r.Cid = cid
 			return r
 		} else {
-			logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+			if r.Err == nil {
+				logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d", r.Fid, r.Ret, r.Resp, retry))
+			} else {
+				logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
+			}
 			time.Sleep(time.Second * 2 * time.Duration(retry))
 			continue
 		}
