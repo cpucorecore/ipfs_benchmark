@@ -176,6 +176,11 @@ func main() {
 						Value:       600,
 						Destination: &p.Timeout,
 					},
+					&cli.IntFlag{
+						Name:        "max_retry",
+						Value:       3,
+						Destination: &p.MaxRetry,
+					},
 					&cli.BoolFlag{
 						Name:        "drop_http_resp",
 						Value:       false,

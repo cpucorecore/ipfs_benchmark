@@ -63,7 +63,19 @@ func postFile(fid int) Result {
 		return Result{Fid: fid, Ret: ErrCreateRequest, Err: e}
 	}
 
-	return doHttpRequest(req, false)
+	retry := 0
+	var r Result
+	for retry < p.MaxRetry {
+		r = doHttpRequest(req, false)
+		if r.Ret == 0 {
+			return r
+		} else {
+			retry++
+			logger.Info(fmt.Sprintf("fid ret:%d, err:%s, resp:%s, retry:%d", r.Ret, r.Err.Error(), r.Resp, retry))
+		}
+	}
+
+	return r
 }
 
 func postFiles(input ClusterAddInput) error {
