@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
@@ -201,6 +202,10 @@ func main() {
 						Destination: &p.Tag,
 						Required:    true,
 					},
+				},
+				Before: func(context *cli.Context) error {
+					httpClient.Timeout = time.Second * time.Duration(p.DoHttpTimeout)
+					return nil
 				},
 				Subcommands: []*cli.Command{
 					{

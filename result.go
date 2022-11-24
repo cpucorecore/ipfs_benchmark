@@ -18,7 +18,7 @@ type Result struct {
 }
 
 type ErrResult struct {
-	R    Result
-	Err  error
-	Resp string
+	R      Result
+	ErrMsg string
+	Resp   string
 }
