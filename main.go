@@ -171,10 +171,18 @@ func main() {
 						Required:    true,
 					},
 					&cli.IntFlag{
-						Name:        "timeout",
+						Name:        "do_http_timeout",
 						Usage:       "http request timeout in second",
 						Value:       600,
-						Destination: &p.Timeout,
+						Destination: &p.DoHttpTimeout,
+						Aliases:     []string{"dto"},
+					},
+					&cli.IntFlag{
+						Name:        "read_http_resp_timeout",
+						Usage:       "http request timeout in second",
+						Value:       600,
+						Destination: &p.ReadHttpRespTimeout,
+						Aliases:     []string{"rto"},
 					},
 					&cli.IntFlag{
 						Name:        "max_retry",
