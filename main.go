@@ -479,6 +479,27 @@ func main() {
 											return doRepeatHttpInput(input)
 										},
 									},
+									{
+										// curl -X POST "http://192.168.0.85:5001/api/v0/repo/stat?size-only=&human="
+										Name: "repo_stat",
+										Action: func(context *cli.Context) error {
+											p.Method = http.MethodPost
+											p.Path = "/api/v0/repo/stat"
+
+											var input IpfsRepoStat
+											input.HttpParams = p
+											input.Repeat = repeat
+											input.SizeOnly = true
+											input.Human = true
+
+											if !input.check() {
+												return ErrCheckFailed
+											}
+											iInput = input
+
+											return doRepeatHttpInput(input)
+										},
+									},
 								},
 							},
 							{

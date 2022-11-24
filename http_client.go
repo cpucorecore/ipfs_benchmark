@@ -77,7 +77,7 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 	case respBody := <-respBodyChan:
 		{
 			if p.Verbose {
-				logger.Debug("http response", zap.String("body", r.Resp))
+				logger.Debug("http response", zap.String("body", respBody))
 			}
 
 			if !dropHttpResp {
