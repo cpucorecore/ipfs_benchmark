@@ -13,7 +13,7 @@ import (
 const (
 	ErrCreateRequest       = ErrCategoryHttp + 1
 	ErrHttpClientDoFailed  = ErrCategoryHttp + 2
-	ErrIoutilReadAllFailed = ErrCategoryHttp + 3
+	ErrIOUtilReadAllFailed = ErrCategoryHttp + 3
 	ErrCloseHttpResp       = ErrCategoryHttp + 4
 	ErrReadHttpRespTimeout = ErrCategoryHttp + 5
 )
@@ -63,7 +63,7 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 	go func() {
 		body, readAllErr := ioutil.ReadAll(resp.Body)
 		if readAllErr != nil {
-			r.Ret = ErrIoutilReadAllFailed
+			r.Ret = ErrIOUtilReadAllFailed
 			r.Err = readAllErr
 		}
 		respBodyChan <- string(body)

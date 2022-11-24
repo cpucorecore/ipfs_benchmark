@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -42,32 +43,32 @@ func callApi(method, url string) []byte {
 	return []byte(r.Resp)
 }
 
-// IpfsInfo {
-//  "ID": "12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi",
-//  "PublicKey": "CAESIIk15/kGXzbWa9DF9VaOKZrikYVYXU3vYj8dzUw4Lt47",
-//  "Addresses": [
-//    "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi",
-//    "/ip4/192.168.0.87/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi",
-//    "/ip6/::1/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi"
-//  ],
-//  "AgentVersion": "kubo/0.15.0/",
-//  "ProtocolVersion": "ipfs/0.1.0",
-//  "Protocols": [
-//    "/ipfs/bitswap",
-//    "/ipfs/bitswap/1.0.0",
-//    "/ipfs/bitswap/1.1.0",
-//    "/ipfs/bitswap/1.2.0",
-//    "/ipfs/id/1.0.0",
-//    "/ipfs/id/push/1.0.0",
-//    "/ipfs/lan/kad/1.0.0",
-//    "/ipfs/ping/1.0.0",
-//    "/libp2p/autonat/1.0.0",
-//    "/libp2p/circuit/relay/0.1.0",
-//    "/libp2p/circuit/relay/0.2.0/stop",
-//    "/p2p/id/delta/1.0.0",
-//    "/x/"
-//  ]
-//}
+//	IpfsInfo {
+//	 "ID": "12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi",
+//	 "PublicKey": "CAESIIk15/kGXzbWa9DF9VaOKZrikYVYXU3vYj8dzUw4Lt47",
+//	 "Addresses": [
+//	   "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi",
+//	   "/ip4/192.168.0.87/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi",
+//	   "/ip6/::1/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi"
+//	 ],
+//	 "AgentVersion": "kubo/0.15.0/",
+//	 "ProtocolVersion": "ipfs/0.1.0",
+//	 "Protocols": [
+//	   "/ipfs/bitswap",
+//	   "/ipfs/bitswap/1.0.0",
+//	   "/ipfs/bitswap/1.1.0",
+//	   "/ipfs/bitswap/1.2.0",
+//	   "/ipfs/id/1.0.0",
+//	   "/ipfs/id/push/1.0.0",
+//	   "/ipfs/lan/kad/1.0.0",
+//	   "/ipfs/ping/1.0.0",
+//	   "/libp2p/autonat/1.0.0",
+//	   "/libp2p/circuit/relay/0.1.0",
+//	   "/libp2p/circuit/relay/0.2.0/stop",
+//	   "/p2p/id/delta/1.0.0",
+//	   "/x/"
+//	 ]
+//	}
 type IpfsInfo struct {
 	ID string
 }
