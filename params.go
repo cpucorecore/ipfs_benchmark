@@ -18,7 +18,8 @@ func (r Range) check() bool {
 }
 
 type CompareParams struct {
-	Tag                  string
+	Tag string
+	Range
 	SortTps, SortLatency bool
 }
 
@@ -27,11 +28,11 @@ func (p CompareParams) name() string {
 }
 
 func (p CompareParams) info() string {
-	return fmt.Sprintf("%s_st-%v_sl-%v", p.Tag, p.SortTps, p.SortLatency)
+	return fmt.Sprintf("%s_%s_st-%v_sl-%v", p.Tag, p.Range.info(), p.SortTps, p.SortLatency)
 }
 
 func (p CompareParams) check() bool {
-	return true
+	return p.Range.check()
 }
 
 type Params struct {

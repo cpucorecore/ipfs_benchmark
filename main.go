@@ -144,6 +144,8 @@ func main() {
 							var input CompareParams
 
 							input.Tag = p.Tag // reuse params
+							input.From = from
+							input.To = to
 							input.SortTps = sortTps
 							input.SortLatency = sortLatency
 
