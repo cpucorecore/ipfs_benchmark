@@ -19,8 +19,8 @@ func countLatencies(latencies []float64) LatencySummary {
 
 	ls.Latencies = latencies
 
-	for _, latency := range latencies {
-		ls.SumLatency += latency
+	for _, l := range latencies {
+		ls.SumLatency += l
 	}
 
 	return ls

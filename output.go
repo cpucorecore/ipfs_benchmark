@@ -39,7 +39,7 @@ func outputSummary(rs ResultsSummary) {
 		TpsYLabel,
 		filepath.Join(ImagesTpsDir, name+PngSuffix),
 		xyz,
-	) // TODO fix execute slowly
+	) // TODO fix execute slowly when points > 10000
 	if e != nil {
 		logger.Error("DrawXYs err", zap.String("err", e.Error()))
 	}

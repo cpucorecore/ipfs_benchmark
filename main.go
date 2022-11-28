@@ -39,7 +39,7 @@ var (
 var (
 	sortTps, sortLatency                  bool // compare
 	size                                  int  // gen_file
-	replica                               int  // cluster add/ cluster pin add
+	replica                               int  // cluster add, cluster pin add
 	pin                                   bool // cluster add
 	blockSize                             int  // cluster add
 	verbose_, streams, latency, direction bool // ipfs swarm peers
