@@ -81,10 +81,6 @@ func baseUrl() string {
 	return "http://" + p.Host + ":" + p.Port + p.Path
 }
 
-func (p HttpParams) name() string {
-	return getNameByHttpMethodAndPath(p.Method, p.Path)
-}
-
 func (p HttpParams) info() string {
 	return p.Params.info()
 }

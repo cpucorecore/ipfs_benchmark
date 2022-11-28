@@ -13,6 +13,10 @@ type IpfsSwarmPeersInput struct {
 	Direction bool
 }
 
+func (i IpfsSwarmPeersInput) name() string {
+	return "ipfs_swarm_peers"
+}
+
 func (i IpfsSwarmPeersInput) info() string {
 	return i.RepeatHttpParams.info() + "_" + i.Tag
 }
@@ -31,6 +35,10 @@ type IpfsIdInput struct {
 	RepeatHttpParams
 }
 
+func (i IpfsIdInput) name() string {
+	return "ipfs_id"
+}
+
 func (i IpfsIdInput) info() string {
 	return i.RepeatHttpParams.info() + "_" + i.Tag
 }
@@ -42,6 +50,10 @@ func (i IpfsIdInput) paramsUrl() string {
 type IpfsRepoStat struct {
 	RepeatHttpParams
 	SizeOnly, Human bool
+}
+
+func (i IpfsRepoStat) name() string {
+	return "ipfs_repo_stat"
 }
 
 func (i IpfsRepoStat) info() string {

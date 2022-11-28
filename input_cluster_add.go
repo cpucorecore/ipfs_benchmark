@@ -18,6 +18,10 @@ type ClusterAddInput struct {
 	Pin       bool
 }
 
+func (i ClusterAddInput) name() string {
+	return "cluster_add"
+}
+
 func (i ClusterAddInput) info() string {
 	return fmt.Sprintf("%s_%s_bs%d_replica%d_pin-%v_%s", i.HttpParams.info(), i.Range.info(), i.BlockSize, i.Replica, i.Pin, i.Tag)
 }
