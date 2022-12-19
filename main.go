@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"time"
@@ -30,6 +31,7 @@ func init() {
 var (
 	iInput IInput
 
+	hosts               cli.StringSlice
 	p                   HttpParams
 	from, to, repeat    int
 	testReport, cidFile string
@@ -162,10 +164,10 @@ func main() {
 			{
 				Name: "api",
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:        "host",
-						Destination: &p.Host,
+					&cli.StringSliceFlag{
+						Name:        "hosts",
 						Required:    true,
+						Destination: &hosts,
 					},
 					&cli.StringFlag{
 						Name:        "port",
@@ -207,6 +209,11 @@ func main() {
 				},
 				Before: func(context *cli.Context) error {
 					httpClient.Timeout = time.Second * time.Duration(p.DoHttpTimeout)
+					p.Hosts = hosts.Value()
+					if len(p.Hosts) == 0 {
+						return errors.New("hosts empty")
+					}
+					p.Host = p.Hosts[0]
 					return nil
 				},
 				Subcommands: []*cli.Command{

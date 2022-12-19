@@ -71,14 +71,26 @@ func (p GenFileParams) check() bool {
 
 type HttpParams struct {
 	Params
+	Hosts                                        []string
 	Host, Port, Method, Path                     string
 	DoHttpTimeout, ReadHttpRespTimeout, MaxRetry int
 	DropHttpResp                                 bool
 	Tag                                          string
 }
 
+var roundRobinCount = -1
+
+func RoundRobinHost() string {
+	if len(p.Hosts) == 1 {
+		return p.Hosts[0]
+	}
+
+	roundRobinCount++
+	return p.Hosts[roundRobinCount%len(p.Hosts)]
+}
+
 func baseUrl() string {
-	return "http://" + p.Host + ":" + p.Port + p.Path
+	return "http://" + RoundRobinHost() + ":" + p.Port + p.Path
 }
 
 func (p HttpParams) info() string {
