@@ -18,14 +18,13 @@ func doIterParamsRequest(ipu IterParamsUrl) error {
 		go func() {
 			defer wg.Done()
 
-			bu := baseUrl()
 			for {
 				fid2Cid, ok := <-chFid2Cids
 				if !ok {
 					break
 				}
 
-				url := bu + ipu.paramsUrl(fid2Cid.Cid)
+				url := baseUrl() + ipu.paramsUrl(fid2Cid.Cid)
 				if p.Verbose {
 					logger.Debug("http req", zap.String("url", url))
 				}

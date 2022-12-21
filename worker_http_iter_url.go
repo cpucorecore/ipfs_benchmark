@@ -18,14 +18,13 @@ func doIterUrlRequest(pu ParamsUrl) error {
 		go func() {
 			defer wg.Done()
 
-			bu := baseUrl()
 			for {
 				fid2Cid, ok := <-chFid2Cids
 				if !ok {
 					break
 				}
 
-				url := bu + "/" + fid2Cid.Cid + pu.paramsUrl()
+				url := baseUrl() + "/" + fid2Cid.Cid + pu.paramsUrl()
 
 				if p.Verbose {
 					logger.Debug("http req", zap.String("url", url))

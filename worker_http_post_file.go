@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-var postFileUrl string
+var inputParamsUrl string
 
 const (
 	ErrJsonParse = ErrCategoryJson + 1
@@ -48,7 +49,11 @@ func createPostFileRequest(fid int) (*http.Request, error) {
 		return nil, e
 	}
 
-	req, e := http.NewRequest(http.MethodPost, postFileUrl, &b)
+	u := baseUrl() + inputParamsUrl
+	if p.Verbose {
+		logger.Debug("http req", zap.String("url", u))
+	}
+	req, e := http.NewRequest(http.MethodPost, u, &b)
 	if e != nil {
 		return nil, e
 	}
@@ -112,10 +117,7 @@ func postFiles(input ClusterAddInput) error {
 	countResultsWg.Add(1)
 	go countResults(&countResultsWg)
 
-	postFileUrl = baseUrl() + input.paramsUrl()
-	if p.Verbose {
-		logger.Debug(postFileUrl)
-	}
+	inputParamsUrl = input.paramsUrl()
 
 	chFids := make(chan int, 10000)
 	go func() {
