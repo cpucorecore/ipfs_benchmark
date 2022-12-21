@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 type Range struct {
@@ -79,14 +80,18 @@ type HttpParams struct {
 }
 
 var roundRobinCount = -1
+var mu sync.Mutex
 
 func RoundRobinHost() string {
 	if len(p.Hosts) == 1 {
 		return p.Hosts[0]
 	}
 
+	mu.Lock()
 	roundRobinCount++
-	return p.Hosts[roundRobinCount%len(p.Hosts)]
+	i := roundRobinCount % len(p.Hosts)
+	mu.Unlock()
+	return p.Hosts[i]
 }
 
 func baseUrl() string {
