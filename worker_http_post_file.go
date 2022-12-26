@@ -84,6 +84,7 @@ func postFile(fid int) Result {
 			r.Ret = ErrJsonParse
 		}
 	}
+	r.Fid = fid
 
 	return r
 }

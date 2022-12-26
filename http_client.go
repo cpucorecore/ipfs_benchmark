@@ -23,10 +23,10 @@ var transport = &http.Transport{
 		Timeout:   300 * time.Second,
 		KeepAlive: 1200 * time.Second,
 	}).DialContext,
-	MaxIdleConns:          2000,
+	MaxIdleConns:          1200,
 	IdleConnTimeout:       600 * time.Second,
 	ExpectContinueTimeout: 600 * time.Second,
-	MaxIdleConnsPerHost:   2000,
+	MaxIdleConnsPerHost:   300,
 }
 
 var httpClient = &http.Client{Transport: transport}
