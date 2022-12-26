@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -50,6 +51,10 @@ var (
 )
 
 func main() {
+	go func() {
+		http.ListenAndServe("0.0.0.0:6666", nil)
+	}()
+
 	app := &cli.App{
 		Name: "ipfs_benchmark",
 		Flags: []cli.Flag{

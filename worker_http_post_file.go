@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -18,95 +17,91 @@ import (
 var inputParamsUrl string
 
 const (
+	ErrCreateFormFile    = ErrCategoryHttpRequest + 1
+	ErrOpenFile          = ErrCategoryHttpRequest + 2
+	ErrCopyFile          = ErrCategoryHttpRequest + 3
+	ErrCloseFile         = ErrCategoryHttpRequest + 4
+	ErrCloseWriter       = ErrCategoryHttpRequest + 5
+	ErrCreateHttpRequest = ErrCategoryHttpRequest + 6
+
 	ErrJsonParse = ErrCategoryJson + 1
 )
 
-func createPostFileRequest(fid int) (*http.Request, error) {
+func postFile(fid int) Result {
+	r := Result{Fid: fid}
+
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
-
-	fidStr := fmt.Sprintf("%d", fid)
-	ff, e := w.CreateFormFile("file", fidStr)
-	if e != nil {
-		return nil, e
+	fileName := fmt.Sprintf("%d", fid)
+	formFile, err := w.CreateFormFile("file", fileName)
+	if err != nil {
+		r.Ret = ErrCreateFormFile
+		r.Err = err
+		return r
 	}
 
-	fp := filepath.Join(PathFiles, fidStr)
-	f, e := os.Open(fp)
-	if e != nil {
-		return nil, e
+	fp := filepath.Join(PathFiles, fileName)
+	f, err := os.Open(fp)
+	if err != nil {
+		r.Ret = ErrOpenFile
+		r.Err = err
+		return r
 	}
 
-	defer f.Close()
-
-	_, e = io.Copy(ff, f)
-	if e != nil {
-		return nil, e
+	_, err = io.Copy(formFile, f)
+	if err != nil {
+		r.Ret = ErrCopyFile
+		r.Err = err
+		return r
 	}
 
-	e = w.Close()
-	if e != nil {
-		return nil, e
+	err = f.Close()
+	if err != nil {
+		r.Ret = ErrCloseFile
+		r.Err = err
+		return r
 	}
 
-	u := baseUrl() + inputParamsUrl
-	if p.Verbose {
-		logger.Debug("http req", zap.String("url", u))
-	}
-	req, e := http.NewRequest(http.MethodPost, u, &b)
-	if e != nil {
-		return nil, e
+	err = w.Close()
+	if err != nil {
+		r.Ret = ErrCloseWriter
+		r.Err = err
+		return r
 	}
 
+	req, err := http.NewRequest(http.MethodPost, baseUrl()+inputParamsUrl, &b)
+	if err != nil {
+		r.Ret = ErrCreateHttpRequest
+		r.Err = err
+		return r
+	}
 	req.Header.Add("Content-Type", w.FormDataContentType())
 
-	return req, nil
+	r = doHttpRequest(req, false)
+	if r.Ret == 0 {
+		r.Cid, r.Err = jsonparser.GetString([]byte(r.Resp), "cid")
+		if r.Err != nil {
+			r.Ret = ErrJsonParse
+		}
+	}
+
+	return r
 }
 
-func postFile(fid int) Result {
+func postFileWithRetry(fid int) Result {
 	retry := 0
 	var r Result
 
 	for retry < p.MaxRetry {
 		retry++
 
-		req, e := createPostFileRequest(fid)
-		if e != nil {
-			r.Fid = fid
-			r.Ret = ErrCreateRequest
-			r.Err = e
-			logger.Info(fmt.Sprintf("create request err, fid:%d, retry:%d", r.Fid, retry))
-			time.Sleep(time.Second * 2 * time.Duration(retry))
-			continue
-		}
-
-		r = doHttpRequest(req, false)
-		r.Fid = fid
+		r = postFile(fid)
 		if r.Ret == 0 {
-			cid, parseJsonErr := jsonparser.GetString([]byte(r.Resp), "cid")
-			if parseJsonErr != nil {
-				r.Ret = ErrJsonParse
-				r.Err = parseJsonErr
-				if r.Err == nil {
-					logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d", r.Fid, r.Ret, r.Resp, retry))
-				} else {
-					logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
-				}
-				time.Sleep(time.Second * 2 * time.Duration(retry))
-				continue
-			}
-
-			r.Cid = cid
 			return r
-		} else {
-			if r.Err == nil {
-				logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d", r.Fid, r.Ret, r.Resp, retry))
-			} else {
-				logger.Info(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
-			}
-			time.Sleep(time.Second * 2 * time.Duration(retry))
-			continue
 		}
+
+		logger.Error(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
+		time.Sleep(time.Second * 2 * time.Duration(retry))
 	}
 
 	return r
@@ -139,7 +134,7 @@ func postFiles(input ClusterAddInput) error {
 					return
 				}
 
-				chResults <- postFile(fid)
+				chResults <- postFileWithRetry(fid)
 			}
 		}()
 	}

@@ -1,7 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
+	"errors"
+	"io"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -11,11 +12,10 @@ import (
 )
 
 const (
-	ErrCreateRequest       = ErrCategoryHttp + 1
-	ErrHttpClientDoFailed  = ErrCategoryHttp + 2
-	ErrIOUtilReadAllFailed = ErrCategoryHttp + 3
-	ErrCloseHttpResp       = ErrCategoryHttp + 4
-	ErrReadHttpRespTimeout = ErrCategoryHttp + 5
+	ErrHttpClientDoFailed  = ErrCategoryHttp + 1
+	ErrIOUtilReadAllFailed = ErrCategoryHttp + 2
+	ErrCloseHttpResp       = ErrCategoryHttp + 3
+	ErrReadHttpRespTimeout = ErrCategoryHttp + 4
 )
 
 var transport = &http.Transport{
@@ -42,7 +42,7 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 	}
 
 	r.S = time.Now()
-	resp, e := httpClient.Do(req)
+	resp, err := httpClient.Do(req)
 	r.E = time.Now()
 
 	if p.SyncConcurrency {
@@ -51,9 +51,9 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 
 	r.Latency = r.E.Sub(r.S).Microseconds()
 
-	if e != nil {
+	if err != nil {
 		r.Ret = ErrHttpClientDoFailed
-		r.Err = e
+		r.Err = err
 		return r
 	}
 
@@ -61,7 +61,7 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 
 	respBodyChan := make(chan string, 1)
 	go func() {
-		body, readAllErr := ioutil.ReadAll(resp.Body)
+		body, readAllErr := io.ReadAll(resp.Body)
 		if readAllErr != nil {
 			r.Ret = ErrIOUtilReadAllFailed
 			r.Err = readAllErr
@@ -71,25 +71,22 @@ func doHttpRequest(req *http.Request, dropHttpResp bool) Result {
 
 	select {
 	case <-time.After(time.Duration(p.ReadHttpRespTimeout) * time.Second):
-		{
-			r.Ret = ErrReadHttpRespTimeout
-		}
+		r.Ret = ErrReadHttpRespTimeout
+		r.Err = errors.New("read http response timeout")
 	case respBody := <-respBodyChan:
-		{
-			if p.Verbose {
-				logger.Debug("http response", zap.String("body", respBody))
-			}
+		if p.Verbose {
+			logger.Debug("http response", zap.String("body", respBody))
+		}
 
-			if !dropHttpResp {
-				r.Resp = respBody
-			}
+		if !dropHttpResp {
+			r.Resp = respBody
 		}
 	}
 
-	e = resp.Body.Close()
-	if e != nil {
+	err = resp.Body.Close()
+	if err != nil {
 		r.Ret = ErrCloseHttpResp
-		r.Err = e
+		r.Err = err
 	}
 
 	return r
