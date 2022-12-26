@@ -101,7 +101,7 @@ func postFileWithRetry(fid int) Result {
 			return r
 		}
 
-		logger.Error(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
+		logger.Debug(fmt.Sprintf("fid:%d, ret:%d, resp:%s, retry:%d, err:%s", r.Fid, r.Ret, r.Resp, retry, r.Err.Error()))
 		time.Sleep(time.Second * 2 * time.Duration(retry))
 	}
 
