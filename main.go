@@ -189,7 +189,7 @@ func main() {
 					},
 					&cli.IntFlag{
 						Name:        "read_http_resp_timeout",
-						Usage:       "http request timeout in second",
+						Usage:       "read http response timeout in second",
 						Value:       600,
 						Destination: &p.ReadHttpRespTimeout,
 						Aliases:     []string{"rto"},
@@ -214,11 +214,11 @@ func main() {
 				},
 				Before: func(context *cli.Context) error {
 					httpClient.Timeout = time.Second * time.Duration(p.DoHttpTimeout)
+
 					p.Hosts = hosts.Value()
 					if len(p.Hosts) == 0 {
 						return errors.New("hosts empty")
 					}
-					p.Host = p.Hosts[0]
 					return nil
 				},
 				Subcommands: []*cli.Command{

@@ -73,7 +73,7 @@ func (p GenFileParams) check() bool {
 type HttpParams struct {
 	Params
 	Hosts                                        []string
-	Host, Port, Method, Path                     string
+	Port, Method, Path                           string
 	DoHttpTimeout, ReadHttpRespTimeout, MaxRetry int
 	DropHttpResp                                 bool
 	Tag                                          string
@@ -110,7 +110,7 @@ func (p HttpParams) check() bool {
 	}
 
 	return p.Params.check() &&
-		len(p.Host) > 0 &&
+		len(p.Hosts) > 0 &&
 		len(p.Port) > 0 &&
 		len(p.Method) > 0 &&
 		len(p.Path) > 0 &&

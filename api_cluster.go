@@ -15,11 +15,11 @@ const (
 	clusterPort = "9094"
 )
 
-func getIpfsUrl(ip, apiPath string) string {
+func buildIpfsUrl(ip, apiPath string) string {
 	return "http://" + ip + ":" + ipfsPort + apiPath
 }
 
-func getClusterUrl(ip, apiPath string) string {
+func buildClusterUrl(ip, apiPath string) string {
 	return "http://" + ip + ":" + clusterPort + apiPath
 }
 
@@ -74,8 +74,8 @@ type IpfsInfo struct {
 }
 
 func ipfsId() string {
-	ipfsIdUrl := getIpfsUrl(p.Host, "/api/v0/id")
-	resp := callApi(http.MethodPost, ipfsIdUrl)
+	url := buildIpfsUrl(p.Hosts[0], "/api/v0/id")
+	resp := callApi(http.MethodPost, url)
 	if resp == nil {
 		return ""
 	}
@@ -100,8 +100,8 @@ type SwarmPeers struct {
 }
 
 func ipfsSwarmPeers() (swarmPeers SwarmPeers) {
-	ipfsSwarmPeersUrl := getIpfsUrl(p.Host, "/api/v0/swarm/peers")
-	resp := callApi(http.MethodPost, ipfsSwarmPeersUrl)
+	url := buildIpfsUrl(p.Hosts[0], "/api/v0/swarm/peers")
+	resp := callApi(http.MethodPost, url)
 	if resp == nil {
 		return
 	}
@@ -119,7 +119,7 @@ func ipfsSwarmPeers() (swarmPeers SwarmPeers) {
 
 	id := ipfsId()
 
-	swarmPeers.Peers = append(swarmPeers.Peers, Peer{Addr: p.Host, Peer: id})
+	swarmPeers.Peers = append(swarmPeers.Peers, Peer{Addr: p.Hosts[0], Peer: id})
 
 	return
 }
@@ -135,8 +135,8 @@ type RepoStat struct {
 const GB = 1024 * 1024 * 1024
 
 func ipfsRepoStat(ip string) (repoStat RepoStat) {
-	ipfsRepStatUrl := getIpfsUrl(ip, "/api/v0/repo/stat")
-	resp := callApi(http.MethodPost, ipfsRepStatUrl)
+	url := buildIpfsUrl(ip, "/api/v0/repo/stat")
+	resp := callApi(http.MethodPost, url)
 	if resp == nil {
 		return
 	}
@@ -161,8 +161,8 @@ func clusterPins(cidDetail bool) {
 	//{"cid":"QmXHFRWyW49vNzUrEo3Rr4wiU5LemBKYMCaG8gjB7oq7RN","name":"","allocations":["12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm","12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4","12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH"],"origins":[],"created":"2022-11-21T03:07:35Z","metadata":null,"peer_map":{"12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi","ipfs_peer_addresses":["/ip4/192.168.0.87/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi"],"status":"pinned","timestamp":"2022-11-21T03:07:35Z","error":"","attempt_count":0,"priority_pin":false},"12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC","ipfs_peer_addresses":["/ip4/192.168.0.85/tcp/4001/p2p/12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC"],"status":"pinned","timestamp":"2022-11-21T11:07:35+08:00","error":"","attempt_count":0,"priority_pin":false},"12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB","ipfs_peer_addresses":["/ip4/192.168.0.86/tcp/4001/p2p/12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB"],"status":"pinned","timestamp":"2022-11-21T03:07:35Z","error":"","attempt_count":0,"priority_pin":false}}}
 	//{"cid":"QmahnmYLjUWX8ek8oRMwmTeg7WnMY61foQdPf18VwWfaLY","name":"","allocations":["12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm","12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4","12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH"],"origins":[],"created":"2022-11-21T02:53:09Z","metadata":null,"peer_map":{"12D3KooWB6cxrTahCGu4T1vLeJTsSU3fHnWJsrig6bNi8afVEekm":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi","ipfs_peer_addresses":["/ip4/192.168.0.87/tcp/4001/p2p/12D3KooWK3yhTEZvvzZq5LM8FtvtAs2oX7iEj4Vjycx8eBdJRCQi"],"status":"pinned","timestamp":"2022-11-21T02:53:09Z","error":"","attempt_count":0,"priority_pin":false},"12D3KooWJ7b5LSbZJmRvrgGQVoSyVM6bTQdjtSc6cBpLWoZTQKXH":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC","ipfs_peer_addresses":["/ip4/192.168.0.85/tcp/4001/p2p/12D3KooWRC61AVD34UNGCcdutEadWzetteZDwv26f55s1zfmhFgC"],"status":"pinned","timestamp":"2022-11-21T10:53:09+08:00","error":"","attempt_count":0,"priority_pin":false},"12D3KooWRh8hkpcCL6kk5LtQ7Fz1Kj5npsDSdHQSpnnEcq6WF7p4":{"peername":"localhost.localdomain","ipfs_peer_id":"12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB","ipfs_peer_addresses":["/ip4/192.168.0.86/tcp/4001/p2p/12D3KooWSJMSyjLGFJzkHRB7x7xp8jVfxCbAiT5oSNmEnQY6QbqB"],"status":"pinned","timestamp":"2022-11-21T02:53:09Z","error":"","attempt_count":0,"priority_pin":false}}}
 
-	u := getClusterUrl(p.Host, "/pins?local=false")
-	resp := callApi(http.MethodGet, u)
+	url := buildClusterUrl(p.Hosts[0], "/pins?local=false")
+	resp := callApi(http.MethodGet, url)
 	if resp == nil {
 		return
 	}
@@ -231,16 +231,15 @@ func clusterInfo(nodeDetail, cidDetail, print bool) (swarmPeers SwarmPeers, repo
 }
 
 func clusterGc() time.Duration {
-	clusterGcUrl := getClusterUrl(p.Host, "/ipfs/gc?local=false")
+	url := buildClusterUrl(p.Hosts[0], "/ipfs/gc?local=false")
 
 	st := time.Now()
 	logger.Info(fmt.Sprintf("gc started at: %s", st.String()))
 
-	callApi(http.MethodPost, clusterGcUrl)
+	callApi(http.MethodPost, url)
 
 	et := time.Now()
 	logger.Info(fmt.Sprintf("gc finished at: %s", et.String()))
-
 	logger.Info(fmt.Sprintf("gc time used:%s", et.Sub(st).String()))
 
 	return et.Sub(st)
