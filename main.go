@@ -44,7 +44,7 @@ var (
 	size                                  int  // gen_file
 	replica                               int  // cluster add, cluster pin add
 	pin                                   bool // cluster add
-	blockSize                             int  // cluster add
+	fileBufferSize, blockSize             int  // cluster add
 	verbose_, streams, latency, direction bool // ipfs swarm peers
 	progress                              bool // ipfs dag stat
 	offset, length                        int  // ipfs cat
@@ -352,6 +352,13 @@ func main() {
 								Name: "add",
 								Flags: []cli.Flag{
 									&cli.IntFlag{
+										Name:        "file_buffer_size",
+										Usage:       "file buffer size by MB",
+										Destination: &fileBufferSize,
+										Value:       11,
+										Aliases:     []string{"fbs"},
+									},
+									&cli.IntFlag{
 										Name:        "block_size",
 										Usage:       "block size, max value 1048576(1MB)",
 										Destination: &blockSize,
@@ -379,6 +386,7 @@ func main() {
 									input.HttpParams = p
 									input.From = from
 									input.To = to
+									input.FileBufferSize = fileBufferSize
 									input.BlockSize = blockSize
 									input.Replica = replica
 									input.Pin = pin

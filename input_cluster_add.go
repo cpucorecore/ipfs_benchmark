@@ -13,9 +13,10 @@ const (
 type ClusterAddInput struct {
 	HttpParams
 	Range
-	BlockSize int
-	Replica   int
-	Pin       bool
+	FileBufferSize int
+	BlockSize      int
+	Replica        int
+	Pin            bool
 }
 
 func (i ClusterAddInput) name() string {
@@ -27,7 +28,7 @@ func (i ClusterAddInput) info() string {
 }
 
 func (i ClusterAddInput) check() bool {
-	return i.HttpParams.check() && i.Range.check() && i.BlockSize >= MinBlockSize && i.BlockSize <= MaxBlockSize && i.Replica > 0
+	return i.HttpParams.check() && i.Range.check() && fileBufferSize > 0 && i.BlockSize >= MinBlockSize && i.BlockSize <= MaxBlockSize && i.Replica > 0
 }
 
 func (i ClusterAddInput) paramsUrl() string {

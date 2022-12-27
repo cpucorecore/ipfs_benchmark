@@ -27,11 +27,11 @@ const (
 	ErrJsonParse = ErrCategoryJson + 1
 )
 
-func postFile(fid int) Result {
+func postFile(b *bytes.Buffer, fid int) Result {
 	r := Result{Fid: fid}
 
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
+	b.Reset()
+	w := multipart.NewWriter(b)
 	fileName := fmt.Sprintf("%d", fid)
 	formFile, err := w.CreateFormFile("file", fileName)
 	if err != nil {
@@ -69,7 +69,7 @@ func postFile(fid int) Result {
 		return r
 	}
 
-	req, err := http.NewRequest(http.MethodPost, baseUrl()+inputParamsUrl, &b)
+	req, err := http.NewRequest(http.MethodPost, baseUrl()+inputParamsUrl, b)
 	if err != nil {
 		r.Ret = ErrCreateHttpRequest
 		r.Err = err
@@ -89,14 +89,14 @@ func postFile(fid int) Result {
 	return r
 }
 
-func postFileWithRetry(fid int) Result {
+func postFileWithRetry(b *bytes.Buffer, fid int) Result {
 	retry := 0
 	var r Result
 
 	for retry < p.MaxRetry {
 		retry++
 
-		r = postFile(fid)
+		r = postFile(b, fid)
 		if r.Ret == 0 {
 			return r
 		}
@@ -129,13 +129,15 @@ func postFiles(input ClusterAddInput) error {
 		go func() {
 			defer wg.Done()
 
+			fileBuffer := make([]byte, 0, 1024*1024*fileBufferSize)
+			buffer := bytes.NewBuffer(fileBuffer)
 			for {
 				fid, ok := <-chFids
 				if !ok {
 					return
 				}
 
-				chResults <- postFileWithRetry(fid)
+				chResults <- postFileWithRetry(buffer, fid)
 			}
 		}()
 	}
