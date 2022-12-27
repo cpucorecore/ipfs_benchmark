@@ -134,6 +134,7 @@ func (p RepeatHttpParams) check() bool {
 type IterHttpParams struct {
 	HttpParams
 	TestReport string
+	CidFile    string
 	Range
 }
 
@@ -142,5 +143,5 @@ func (p IterHttpParams) info() string {
 }
 
 func (p IterHttpParams) check() bool {
-	return p.HttpParams.check() && p.Range.check() && len(p.TestReport) > 0 // TODO check file exist
+	return p.HttpParams.check() && p.Range.check() && (len(p.TestReport) > 0 || len(p.CidFile) > 0) // TODO check file exist
 }

@@ -174,8 +174,8 @@ func loadFid2CidsFromTestReport() error {
 	return nil
 }
 
-func loadCidFile(file string) error {
-	bs, e := loadFile(file)
+func loadCidFile() error {
+	bs, e := loadFile(cidFile)
 	if e != nil {
 		return e
 	}

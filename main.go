@@ -257,11 +257,21 @@ func main() {
 										Name:        "test_report",
 										Destination: &testReport,
 										Aliases:     []string{"tr"},
-										Required:    true,
+									},
+									&cli.StringFlag{
+										Name:        "cid_file",
+										Destination: &cidFile,
+										Aliases:     []string{"c"},
 									},
 								},
 								Before: func(context *cli.Context) error {
-									return loadFid2CidsFromTestReport()
+									if context.IsSet("test_report") {
+										return loadFid2CidsFromTestReport()
+									} else if context.IsSet("cid_file") {
+										return loadCidFile()
+									} else {
+										return errors.New("test_report or cid_file not set")
+									}
 								},
 								Subcommands: []*cli.Command{
 									{
@@ -281,6 +291,7 @@ func main() {
 											var input ClusterPinAddInput
 											input.HttpParams = p
 											input.TestReport = testReport
+											input.CidFile = cidFile
 											input.From = from
 											input.To = to
 											input.Replica = replica
@@ -302,6 +313,7 @@ func main() {
 											var input ClusterPinRmInput
 											input.HttpParams = p
 											input.TestReport = testReport
+											input.CidFile = cidFile
 											input.From = from
 											input.To = to
 
@@ -322,6 +334,7 @@ func main() {
 											var input ClusterPinGetInput
 											input.HttpParams = p
 											input.TestReport = testReport
+											input.CidFile = cidFile
 											input.From = from
 											input.To = to
 
@@ -376,38 +389,6 @@ func main() {
 									iInput = input
 
 									return postFiles(input)
-								},
-							},
-							{
-								Name:  "unpin_by_cid",
-								Usage: "unpin by cids file",
-								Flags: []cli.Flag{
-									&cli.StringFlag{
-										Name:        "cid_file",
-										Destination: &cidFile,
-										Aliases:     []string{"c"},
-										Required:    true,
-									},
-								},
-								Before: func(context *cli.Context) error {
-									return loadCidFile(context.String("cid_file"))
-								},
-								Action: func(context *cli.Context) error {
-									p.Method = http.MethodDelete
-									p.Path = "/pins/ipfs"
-
-									var input ClusterUnpinByCidInput
-									input.HttpParams = p
-									input.cidFile = cidFile
-									input.From = from
-									input.To = to
-
-									if !input.check() {
-										return ErrCheckFailed
-									}
-									iInput = input
-
-									return doIterUrlRequest(input)
 								},
 							},
 						},
@@ -523,11 +504,21 @@ func main() {
 										Name:        "test_report",
 										Destination: &testReport,
 										Aliases:     []string{"tr"},
-										Required:    true,
+									},
+									&cli.StringFlag{
+										Name:        "cid_file",
+										Destination: &cidFile,
+										Aliases:     []string{"c"},
 									},
 								},
 								Before: func(context *cli.Context) error {
-									return loadFid2CidsFromTestReport()
+									if context.IsSet("test_report") {
+										return loadFid2CidsFromTestReport()
+									} else if context.IsSet("cid_file") {
+										return loadCidFile()
+									} else {
+										return errors.New("test_report or cid_file not set")
+									}
 								},
 								Subcommands: []*cli.Command{
 									{
@@ -548,6 +539,7 @@ func main() {
 											var input IpfsDhtFindprovsInput
 											input.HttpParams = p
 											input.TestReport = testReport
+											input.CidFile = cidFile
 											input.From = from
 											input.To = to
 											input.Verbose_ = verbose_
@@ -578,6 +570,7 @@ func main() {
 											var input IpfsDagStatInput
 											input.HttpParams = p
 											input.TestReport = testReport
+											input.CidFile = cidFile
 											input.From = from
 											input.To = to
 											input.Progress = progress
@@ -617,6 +610,7 @@ func main() {
 											var input IpfsCatInput
 											input.HttpParams = p
 											input.TestReport = testReport
+											input.CidFile = cidFile
 											input.From = from
 											input.To = to
 											input.Offset = offset

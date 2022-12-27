@@ -65,25 +65,3 @@ func (i ClusterPinGetInput) info() string {
 func (i ClusterPinGetInput) paramsUrl() string {
 	return "?local=false"
 }
-
-type ClusterUnpinByCidInput struct {
-	HttpParams
-	cidFile string
-	Range
-}
-
-func (i ClusterUnpinByCidInput) name() string {
-	return "cluster_pins_rm"
-}
-
-func (i ClusterUnpinByCidInput) info() string {
-	return fmt.Sprintf("%s_%s_%s", i.HttpParams.info(), i.Range.info(), i.Tag)
-}
-
-func (i ClusterUnpinByCidInput) check() bool {
-	return i.HttpParams.check() && len(i.cidFile) > 0 && i.Range.check() // TODO check cid file exist
-}
-
-func (i ClusterUnpinByCidInput) paramsUrl() string {
-	return ""
-}
