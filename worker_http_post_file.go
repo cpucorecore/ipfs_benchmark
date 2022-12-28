@@ -79,10 +79,18 @@ func postFile(b *bytes.Buffer, fid int) Result {
 
 	r = doHttpRequest(req, false)
 	if r.Ret == 0 {
-		r.Cid, r.Err = jsonparser.GetString([]byte(r.Resp), "cid")
+		//r.Cid, r.Err = jsonparser.GetString([]byte(r.Resp), "cid")
+		//if r.Err != nil {
+		//	r.Ret = ErrJsonParse
+		//}
+
+		_, r.Err = jsonparser.ArrayEach([]byte(r.Resp), func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+			r.Cid, r.Err = jsonparser.GetString(value, "cid")
+		})
 		if r.Err != nil {
 			r.Ret = ErrJsonParse
 		}
+
 	}
 	r.Fid = fid
 
