@@ -45,6 +45,7 @@ func (i ClusterAddInput) paramsUrl() string {
 		"no-pin":          {noPin},
 		"replication-min": {min},
 		"replication-max": {max},
+		"stream-channels": {"false"},
 	}
 
 	return "?" + values.Encode()
